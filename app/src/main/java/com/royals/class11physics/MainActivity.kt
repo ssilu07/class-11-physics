@@ -31,6 +31,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -55,6 +56,42 @@ val chapters = listOf(
     Chapter(13, "Kinetic Theory", "chapter_13.html"),
     Chapter(14, "Oscillations", "chapter_14.html"),
     Chapter(15, "Waves", "chapter_15.html")
+)
+
+private val cardBgColors = listOf(
+    Color(0xFFFFCDD2), // 1  - Red
+    Color(0xFFFFE0B2), // 2  - Orange
+    Color(0xFFFFF9C4), // 3  - Yellow
+    Color(0xFFC8E6C9), // 4  - Green
+    Color(0xFFB2EBF2), // 5  - Cyan
+    Color(0xFFB3E5FC), // 6  - Light Blue
+    Color(0xFFBBDEFB), // 7  - Blue
+    Color(0xFFD1C4E9), // 8  - Deep Purple
+    Color(0xFFF8BBD9), // 9  - Pink
+    Color(0xFFDCEDC8), // 10 - Light Green
+    Color(0xFFB2DFDB), // 11 - Teal
+    Color(0xFFFFCCBC), // 12 - Deep Orange
+    Color(0xFFE1BEE7), // 13 - Purple
+    Color(0xFFB3E5FC), // 14 - Sky Blue
+    Color(0xFFFFE0B2), // 15 - Peach
+)
+
+private val cardNumberColors = listOf(
+    Color(0xFFE53935), // 1
+    Color(0xFFFB8C00), // 2
+    Color(0xFFF9A825), // 3
+    Color(0xFF43A047), // 4
+    Color(0xFF00ACC1), // 5
+    Color(0xFF039BE5), // 6
+    Color(0xFF1E88E5), // 7
+    Color(0xFF5E35B1), // 8
+    Color(0xFFE91E63), // 9
+    Color(0xFF7CB342), // 10
+    Color(0xFF00897B), // 11
+    Color(0xFFF4511E), // 12
+    Color(0xFF8E24AA), // 13
+    Color(0xFF0288D1), // 14
+    Color(0xFFF57C00), // 15
 )
 
 class MainActivity : ComponentActivity() {
@@ -106,11 +143,16 @@ fun ChapterListScreen() {
 
 @Composable
 fun ChapterCard(chapter: Chapter, onClick: () -> Unit) {
+    val colorIndex = (chapter.number - 1).coerceIn(0, cardBgColors.lastIndex)
+    val bgColor = cardBgColors[colorIndex]
+    val numberColor = cardNumberColors[colorIndex]
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = bgColor)
     ) {
         Row(
             modifier = Modifier
@@ -121,14 +163,14 @@ fun ChapterCard(chapter: Chapter, onClick: () -> Unit) {
             Surface(
                 modifier = Modifier.size(52.dp),
                 shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.primaryContainer
+                color = numberColor
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
                         text = "${chapter.number}",
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                        color = Color.White
                     )
                 }
             }
@@ -137,12 +179,14 @@ fun ChapterCard(chapter: Chapter, onClick: () -> Unit) {
                 Text(
                     text = "Chapter ${chapter.number}",
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary
+                    color = numberColor,
+                    fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = chapter.title,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF212121)
                 )
             }
         }
