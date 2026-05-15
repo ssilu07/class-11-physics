@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spin Master — Rotational Motion</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;500;700;800;900&family=Exo+2:wght@400;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d0015;
+  --bg2:#160025;
+  --accent:#9c27b0;
+  --accent2:#ce93d8;
+  --gold:#ffd600;
+  --red:#f44336;
+  --text:#ede7f6;
+  --muted:#9575cd;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{overflow-x:hidden}
+body{
+  font-family:'Nunito',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  background-image:
+    radial-gradient(circle at 15% 20%, rgba(156,39,176,.18), transparent 45%),
+    radial-gradient(circle at 85% 75%, rgba(206,147,216,.1), transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(103,58,183,.07), transparent 55%);
+  padding:20px 16px 60px;
+}
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(156,39,176,.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(156,39,176,.03) 1px, transparent 1px);
+  background-size:50px 50px;
+  pointer-events:none;z-index:0;
+}
+.container{position:relative;z-index:1;max-width:900px;margin:0 auto}
+
+/* HEADER */
+header{text-align:center;margin-bottom:28px;padding:20px 0}
+.title{
+  font-family:'Exo 2',sans-serif;font-weight:800;
+  font-size:clamp(1.8rem,6vw,3.2rem);
+  line-height:1;letter-spacing:1px;
+  background:linear-gradient(135deg,#ce93d8,#9c27b0,#ffd600);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 30px rgba(156,39,176,.5));
+}
+.subtitle{
+  font-family:'Share Tech Mono',monospace;
+  color:var(--accent2);font-size:.82rem;margin-top:8px;
+  letter-spacing:2px;text-transform:uppercase;
+}
+.stats{display:flex;justify-content:center;gap:12px;margin-top:18px;flex-wrap:wrap}
+.stat{
+  background:rgba(156,39,176,.1);
+  border:1px solid rgba(156,39,176,.3);
+  border-radius:12px;padding:8px 16px;
+  font-family:'Share Tech Mono',monospace;font-size:.8rem;
+}
+.stat strong{color:var(--gold);font-size:1rem}
+
+/* TABS */
+.tabs{
+  display:flex;gap:8px;margin-bottom:24px;
+  background:rgba(255,255,255,.03);
+  padding:6px;border-radius:16px;
+  border:1px solid rgba(156,39,176,.2);
+  overflow-x:auto;
+}
+.tab{
+  flex:1;min-width:fit-content;padding:12px 14px;
+  border:none;background:transparent;
+  color:var(--muted);cursor:pointer;
+  font-family:'Nunito',sans-serif;font-weight:700;font-size:.9rem;
+  border-radius:10px;transition:all .25s;white-space:nowrap;
+}
+.tab.active{
+  background:linear-gradient(135deg,var(--accent),#7b1fa2);
+  color:#fff;
+  box-shadow:0 4px 20px rgba(156,39,176,.5);
+}
+.tab:hover:not(.active){background:rgba(156,39,176,.1);color:var(--text)}
+
+/* PANELS */
+.panel{
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(156,39,176,.15);
+  border-radius:24px;padding:24px;
+  backdrop-filter:blur(10px);
+  display:none;animation:fadeIn .4s ease;
+}
+.panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.panel h2{
+  font-family:'Exo 2',sans-serif;font-size:1.4rem;
+  margin-bottom:6px;color:var(--accent2);font-weight:700;
+}
+.panel-sub{color:var(--muted);font-size:.88rem;margin-bottom:20px}
+
+/* THEORY */
+.concept-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-bottom:20px}
+.concept-card{
+  background:rgba(156,39,176,.08);
+  border:1px solid rgba(156,39,176,.25);
+  border-radius:16px;padding:18px;
+  transition:transform .2s,box-shadow .2s;
+}
+.concept-card:hover{transform:translateY(-3px);box-shadow:0 8px 30px rgba(156,39,176,.2)}
+.concept-card h3{
+  font-family:'Exo 2',sans-serif;font-size:1rem;
+  color:var(--accent2);margin-bottom:8px;font-weight:700;
+}
+.concept-card p{font-size:.88rem;color:var(--text);line-height:1.6;opacity:.9}
+.formula{
+  font-family:'Share Tech Mono',monospace;
+  background:rgba(156,39,176,.15);
+  border:1px solid rgba(156,39,176,.3);
+  border-radius:10px;padding:10px 14px;
+  color:var(--gold);font-size:.9rem;margin-top:8px;
+  word-break:break-word;
+}
+.section-title{
+  font-family:'Exo 2',sans-serif;font-weight:700;
+  color:var(--gold);font-size:1.1rem;
+  margin:20px 0 12px;
+  padding-bottom:6px;
+  border-bottom:1px solid rgba(255,214,0,.2);
+}
+.moi-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:.88rem}
+.moi-table th{
+  background:rgba(156,39,176,.2);
+  color:var(--accent2);
+  font-family:'Exo 2',sans-serif;
+  padding:10px 14px;text-align:left;
+  border-bottom:2px solid rgba(156,39,176,.3);
+}
+.moi-table td{
+  padding:9px 14px;
+  border-bottom:1px solid rgba(255,255,255,.05);
+  font-family:'Share Tech Mono',monospace;
+  font-size:.83rem;
+}
+.moi-table tr:nth-child(even) td{background:rgba(156,39,176,.05)}
+.moi-table td:last-child{color:var(--gold)}
+
+/* SIMULATION */
+.sim-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+@media(max-width:600px){.sim-layout{grid-template-columns:1fr}}
+.canvas-wrap{
+  background:rgba(0,0,0,.4);
+  border:1px solid rgba(156,39,176,.3);
+  border-radius:16px;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+canvas{display:block;width:100%;height:auto}
+.sim-controls{display:flex;flex-direction:column;gap:14px}
+.ctrl-group label{
+  display:block;
+  font-family:'Share Tech Mono',monospace;
+  font-size:.78rem;color:var(--accent2);
+  letter-spacing:1px;margin-bottom:6px;
+}
+input[type=range]{
+  width:100%;height:6px;
+  -webkit-appearance:none;appearance:none;
+  background:rgba(156,39,176,.2);
+  border-radius:3px;outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  width:18px;height:18px;
+  background:var(--accent);
+  border-radius:50%;
+  box-shadow:0 0 8px rgba(156,39,176,.6);
+}
+.readout-box{
+  background:rgba(0,0,0,.4);
+  border:1px solid rgba(156,39,176,.25);
+  border-radius:12px;padding:14px;
+}
+.readout-row{
+  display:flex;justify-content:space-between;
+  align-items:center;padding:5px 0;
+  border-bottom:1px solid rgba(255,255,255,.05);
+  font-size:.85rem;
+}
+.readout-row:last-child{border-bottom:none}
+.readout-label{color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.75rem}
+.readout-val{color:var(--gold);font-family:'Share Tech Mono',monospace;font-weight:700}
+.sim-btn{
+  padding:12px;border:none;border-radius:12px;
+  background:linear-gradient(135deg,var(--accent),#7b1fa2);
+  color:#fff;font-family:'Exo 2',sans-serif;
+  font-weight:700;font-size:.95rem;
+  cursor:pointer;transition:all .2s;
+  box-shadow:0 4px 15px rgba(156,39,176,.4);
+}
+.sim-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(156,39,176,.5)}
+.sim-note{font-size:.8rem;color:var(--muted);text-align:center;font-style:italic}
+
+/* QUIZ */
+.quiz-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.quiz-score-box{
+  background:rgba(156,39,176,.12);
+  border:1px solid rgba(156,39,176,.3);
+  border-radius:10px;padding:8px 16px;
+  font-family:'Share Tech Mono',monospace;font-size:.85rem;
+}
+.quiz-score-box span{color:var(--gold);font-weight:700}
+.q-card{
+  background:rgba(156,39,176,.07);
+  border:1px solid rgba(156,39,176,.2);
+  border-radius:16px;padding:20px;margin-bottom:16px;
+}
+.q-num{font-family:'Share Tech Mono',monospace;font-size:.73rem;color:var(--accent2);letter-spacing:1px;margin-bottom:8px}
+.q-text{font-size:1rem;font-weight:700;line-height:1.55;margin-bottom:14px;font-family:'Exo 2',sans-serif}
+.options{display:grid;gap:9px}
+.option{
+  background:rgba(255,255,255,.04);
+  border:2px solid rgba(255,255,255,.08);
+  color:var(--text);padding:12px 16px;border-radius:11px;
+  text-align:left;cursor:pointer;
+  font-family:'Nunito',sans-serif;font-size:.92rem;
+  transition:all .2s;
+}
+.option:hover:not(:disabled){background:rgba(156,39,176,.12);border-color:var(--accent);transform:translateX(4px)}
+.option.correct{background:rgba(76,175,80,.15);border-color:#4caf50;color:#a5d6a7}
+.option.wrong{background:rgba(244,67,54,.15);border-color:#f44336;color:#ef9a9a}
+.option:disabled{cursor:not-allowed}
+.feedback{margin-top:12px;padding:12px;border-radius:10px;font-size:.87rem;line-height:1.5;display:none}
+.feedback.show{display:block;animation:fadeIn .3s}
+.feedback.correct{background:rgba(76,175,80,.1);border-left:4px solid #4caf50;color:#c8e6c9}
+.feedback.wrong{background:rgba(244,67,54,.1);border-left:4px solid #f44336;color:#ffcdd2}
+.next-btn{
+  margin-top:12px;width:100%;padding:13px;border:none;border-radius:11px;
+  background:linear-gradient(135deg,var(--accent),var(--gold));
+  color:#fff;font-weight:800;font-size:.95rem;cursor:pointer;
+  font-family:'Exo 2',sans-serif;letter-spacing:1px;display:none;
+  transition:all .2s;
+}
+.next-btn.show{display:block}
+.next-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(156,39,176,.4)}
+.quiz-result{
+  text-align:center;padding:30px 20px;
+  background:rgba(156,39,176,.1);
+  border:1px solid rgba(156,39,176,.3);
+  border-radius:16px;display:none;
+}
+.quiz-result.show{display:block;animation:fadeIn .5s}
+.result-score{
+  font-family:'Exo 2',sans-serif;font-size:3rem;font-weight:800;
+  background:linear-gradient(135deg,var(--accent2),var(--gold));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.result-msg{color:var(--text);font-size:1.05rem;margin:10px 0 20px;opacity:.85}
+.restart-btn{
+  padding:12px 28px;border:none;border-radius:12px;
+  background:linear-gradient(135deg,var(--accent),#7b1fa2);
+  color:#fff;font-weight:700;font-size:.95rem;cursor:pointer;
+  font-family:'Exo 2',sans-serif;
+  transition:all .2s;
+}
+.restart-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(156,39,176,.4)}
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <div class="title">Spin Master</div>
+  <div class="subtitle">Chapter 7 — Systems of Particles &amp; Rotational Motion</div>
+  <div class="stats">
+    <div class="stat">Score <strong id="hdr-score">0</strong></div>
+    <div class="stat">Streak <strong id="hdr-streak">0</strong></div>
+    <div class="stat">Best <strong id="hdr-best">0</strong></div>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('theory',this)">Theory</button>
+  <button class="tab" onclick="showTab('simulation',this)">Simulation</button>
+  <button class="tab" onclick="showTab('quiz',this)">Quiz</button>
+</div>
+
+<!-- THEORY -->
+<div class="panel active" id="tab-theory">
+  <h2>Rotational Motion — Core Concepts</h2>
+  <p class="panel-sub">Master spinning objects, angular quantities, and conservation laws.</p>
+
+  <div class="section-title">Fundamental Concepts</div>
+  <div class="concept-grid">
+    <div class="concept-card">
+      <h3>Center of Mass</h3>
+      <p>The point where the entire mass of a system can be considered concentrated. For a system of particles:</p>
+      <div class="formula">r_cm = (Sm·r) / M</div>
+    </div>
+    <div class="concept-card">
+      <h3>Moment of Inertia</h3>
+      <p>Rotational analog of mass — resistance to angular acceleration. Depends on mass distribution about the rotation axis.</p>
+      <div class="formula">I = S m·r²</div>
+    </div>
+    <div class="concept-card">
+      <h3>Torque</h3>
+      <p>Rotational analog of force. Causes angular acceleration. It is the cross product of the position vector and force.</p>
+      <div class="formula">t = r x F = I·a</div>
+    </div>
+    <div class="concept-card">
+      <h3>Angular Momentum</h3>
+      <p>Rotational analog of linear momentum. Conserved when the net external torque on the system is zero.</p>
+      <div class="formula">L = I·w = r x p</div>
+    </div>
+    <div class="concept-card">
+      <h3>Angular Kinematics</h3>
+      <p>Angular counterparts of linear equations. Uses angular acceleration a, angular velocity w, and angle q.</p>
+      <div class="formula">w = w0 + at | q = w0t + ½at²</div>
+    </div>
+    <div class="concept-card">
+      <h3>Rolling Motion</h3>
+      <p>Combination of translation and rotation. No-slip condition: v_cm = Rw. Total KE includes both types.</p>
+      <div class="formula">KE = ½Mv² + ½Iw²</div>
+    </div>
+  </div>
+
+  <div class="section-title">Axis Theorems</div>
+  <div class="concept-grid">
+    <div class="concept-card">
+      <h3>Parallel Axis Theorem</h3>
+      <p>Moment of inertia about any axis parallel to the CM axis, at distance d from it:</p>
+      <div class="formula">I = I_cm + M·d²</div>
+    </div>
+    <div class="concept-card">
+      <h3>Perpendicular Axis Theorem</h3>
+      <p>For a 2D lamina: sum of moments about two in-plane perpendicular axes equals moment about the normal axis.</p>
+      <div class="formula">I_z = I_x + I_y</div>
+    </div>
+    <div class="concept-card">
+      <h3>Conservation of L</h3>
+      <p>When net external torque = 0, angular momentum is conserved. A skater pulling arms in spins faster!</p>
+      <div class="formula">I1w1 = I2w2 (if t_ext = 0)</div>
+    </div>
+    <div class="concept-card">
+      <h3>Rotational KE</h3>
+      <p>Kinetic energy stored in rotational motion of a rigid body spinning about a fixed axis.</p>
+      <div class="formula">KE_rot = ½·I·w²</div>
+    </div>
+  </div>
+
+  <div class="section-title">Moment of Inertia — Standard Bodies</div>
+  <table class="moi-table">
+    <thead><tr><th>Body</th><th>Axis</th><th>I</th></tr></thead>
+    <tbody>
+      <tr><td>Ring / Hoop</td><td>Through center, perpendicular to plane</td><td>MR²</td></tr>
+      <tr><td>Circular Disk</td><td>Through center, perpendicular to plane</td><td>½MR²</td></tr>
+      <tr><td>Solid Sphere</td><td>Through center (diameter)</td><td>(2/5)MR²</td></tr>
+      <tr><td>Hollow Sphere</td><td>Through center (diameter)</td><td>(2/3)MR²</td></tr>
+      <tr><td>Thin Rod</td><td>Through center, perpendicular</td><td>ML²/12</td></tr>
+      <tr><td>Thin Rod</td><td>Through one end, perpendicular</td><td>ML²/3</td></tr>
+      <tr><td>Disk</td><td>Along diameter</td><td>(1/4)MR²</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- SIMULATION -->
+<div class="panel" id="tab-simulation">
+  <h2>Rotating Disk Simulator</h2>
+  <p class="panel-sub">Adjust mass and radius to see how moment of inertia affects rotation. Use the conservation button to see angular momentum conservation!</p>
+  <div class="sim-layout">
+    <div class="canvas-wrap">
+      <canvas id="simCanvas" width="320" height="320"></canvas>
+    </div>
+    <div class="sim-controls">
+      <div class="ctrl-group">
+        <label>MASS (M) : <span id="massLabel">2.0</span> kg</label>
+        <input type="range" id="massSlider" min="0.5" max="10" step="0.1" value="2.0">
+      </div>
+      <div class="ctrl-group">
+        <label>RADIUS (R) : <span id="radiusLabel">0.50</span> m</label>
+        <input type="range" id="radiusSlider" min="0.1" max="1.0" step="0.01" value="0.5">
+      </div>
+      <div class="ctrl-group">
+        <label>ANGULAR VEL (w) : <span id="omegaLabel">2.0</span> rad/s</label>
+        <input type="range" id="omegaSlider" min="0.5" max="10" step="0.1" value="2.0">
+      </div>
+      <div class="readout-box">
+        <div class="readout-row">
+          <span class="readout-label">Moment of Inertia (I)</span>
+          <span class="readout-val" id="rI">1.0000 kg·m²</span>
+        </div>
+        <div class="readout-row">
+          <span class="readout-label">Angular Velocity (w)</span>
+          <span class="readout-val" id="rW">2.000 rad/s</span>
+        </div>
+        <div class="readout-row">
+          <span class="readout-label">Angular Momentum (L)</span>
+          <span class="readout-val" id="rL">2.0000 kg·m²/s</span>
+        </div>
+        <div class="readout-row">
+          <span class="readout-label">Rotational KE</span>
+          <span class="readout-val" id="rKE">2.000 J</span>
+        </div>
+      </div>
+      <button class="sim-btn" id="toggleBtn" onclick="toggleSpin()">Pause Rotation</button>
+      <button class="sim-btn" onclick="conserveL()">Conserve L (halve R)</button>
+      <p class="sim-note">Halving R doubles w to conserve angular momentum!</p>
+    </div>
+  </div>
+</div>
+
+<!-- QUIZ -->
+<div class="panel" id="tab-quiz">
+  <h2>Quiz — Rotational Motion</h2>
+  <div class="quiz-header">
+    <p class="panel-sub" style="margin:0">Test your understanding of spinning physics!</p>
+    <div class="quiz-score-box">Score: <span id="q-score">0</span> / 6 &nbsp;|&nbsp; Streak: <span id="q-streak">0</span></div>
+  </div>
+  <div id="quiz-container"></div>
+  <div class="quiz-result" id="quiz-result">
+    <div class="result-score" id="result-score-text"></div>
+    <div class="result-msg" id="result-msg"></div>
+    <button class="restart-btn" onclick="restartQuiz()">Try Again</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+/* TAB SWITCHING */
+function showTab(id, btn){
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+  if(id === 'simulation') startSim();
+}
+
+/* SIMULATION */
+var animId = null, spinning = true, angle = 0;
+var simM = 2.0, simR = 0.5, simOmega = 2.0, L0 = null;
+var simCanvas = document.getElementById('simCanvas');
+var ctx = simCanvas.getContext('2d');
+
+function calcI(m, r){ return 0.5 * m * r * r; }
+
+function updateReadouts(){
+  var I = calcI(simM, simR);
+  document.getElementById('rI').textContent = I.toFixed(4) + ' kg·m²';
+  document.getElementById('rW').textContent = simOmega.toFixed(3) + ' rad/s';
+  document.getElementById('rL').textContent = (I * simOmega).toFixed(4) + ' kg·m²/s';
+  document.getElementById('rKE').textContent = (0.5 * I * simOmega * simOmega).toFixed(3) + ' J';
+}
+
+function drawDisk(){
+  var W = simCanvas.width, H = simCanvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  // background grid
+  ctx.strokeStyle = 'rgba(156,39,176,0.1)';
+  ctx.lineWidth = 1;
+  for(var x = 0; x <= W; x += 32){
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for(var y = 0; y <= H; y += 32){
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  var cx = W / 2, cy = H / 2;
+  var maxR = Math.min(W, H) * 0.42;
+  var drawR = 20 + (simR / 1.0) * (maxR - 20);
+
+  // outer glow ring
+  var grd = ctx.createRadialGradient(cx, cy, drawR * 0.8, cx, cy, drawR * 1.3);
+  grd.addColorStop(0, 'rgba(156,39,176,0.0)');
+  grd.addColorStop(1, 'rgba(156,39,176,0.18)');
+  ctx.beginPath(); ctx.arc(cx, cy, drawR * 1.3, 0, Math.PI * 2);
+  ctx.fillStyle = grd; ctx.fill();
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(angle);
+
+  // disk fill
+  var grad = ctx.createRadialGradient(0, 0, 0, 0, 0, drawR);
+  grad.addColorStop(0, 'rgba(206,147,216,0.85)');
+  grad.addColorStop(0.55, 'rgba(156,39,176,0.75)');
+  grad.addColorStop(1, 'rgba(74,20,140,0.9)');
+  ctx.beginPath(); ctx.arc(0, 0, drawR, 0, Math.PI * 2);
+  ctx.fillStyle = grad; ctx.fill();
+  ctx.strokeStyle = 'rgba(206,147,216,0.5)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // spokes
+  ctx.strokeStyle = 'rgba(255,214,0,0.5)';
+  ctx.lineWidth = 2;
+  for(var i = 0; i < 8; i++){
+    ctx.save();
+    ctx.rotate(i * Math.PI / 4);
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -drawR);
+    ctx.stroke();
+    ctx.restore();
+  }
+  // center hub
+  ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffd600'; ctx.fill();
+
+  ctx.restore();
+
+  // labels on canvas
+  ctx.fillStyle = 'rgba(206,147,216,0.85)';
+  ctx.font = '11px Share Tech Mono, monospace';
+  ctx.fillText('M=' + simM.toFixed(1) + 'kg  R=' + simR.toFixed(2) + 'm', 8, H - 22);
+  ctx.fillText('w=' + simOmega.toFixed(2) + ' rad/s  I=' + calcI(simM, simR).toFixed(3) + ' kg.m2', 8, H - 8);
+}
+
+function simLoop(){
+  if(spinning) angle += simOmega * 0.016;
+  drawDisk();
+  updateReadouts();
+  animId = requestAnimationFrame(simLoop);
+}
+
+function startSim(){
+  if(animId) return;
+  var I = calcI(simM, simR);
+  L0 = I * simOmega;
+  simLoop();
+}
+
+function toggleSpin(){
+  spinning = !spinning;
+  document.getElementById('toggleBtn').textContent = spinning ? 'Pause Rotation' : 'Resume Rotation';
+}
+
+function conserveL(){
+  if(!L0){ var I = calcI(simM, simR); L0 = I * simOmega; }
+  simR = Math.max(0.1, simR * 0.5);
+  var I = calcI(simM, simR);
+  simOmega = L0 / I;
+  simOmega = Math.min(simOmega, 10);
+  document.getElementById('radiusSlider').value = simR;
+  document.getElementById('radiusLabel').textContent = simR.toFixed(2);
+  document.getElementById('omegaSlider').value = Math.min(simOmega, 10);
+  document.getElementById('omegaLabel').textContent = simOmega.toFixed(2);
+}
+
+document.getElementById('massSlider').addEventListener('input', function(){
+  simM = parseFloat(this.value);
+  document.getElementById('massLabel').textContent = simM.toFixed(1);
+  var I = calcI(simM, simR); L0 = I * simOmega;
+});
+document.getElementById('radiusSlider').addEventListener('input', function(){
+  simR = parseFloat(this.value);
+  document.getElementById('radiusLabel').textContent = simR.toFixed(2);
+  var I = calcI(simM, simR); L0 = I * simOmega;
+});
+document.getElementById('omegaSlider').addEventListener('input', function(){
+  simOmega = parseFloat(this.value);
+  document.getElementById('omegaLabel').textContent = simOmega.toFixed(2);
+  var I = calcI(simM, simR); L0 = I * simOmega;
+});
+
+/* QUIZ DATA */
+var questions = [
+  {
+    q: "A solid disk of mass M and radius R has moment of inertia I = ½MR². If the radius is doubled (keeping mass same), the new I is:",
+    opts: ["½MR²", "MR²", "2MR²", "4MR²"],
+    ans: 2,
+    exp: "I = ½M(2R)² = ½M × 4R² = 2MR². Moment of inertia scales as R², so doubling R quadruples I from ½MR² to 2MR²."
+  },
+  {
+    q: "A ballet dancer spins with arms extended (I₁ = 3 kg·m²) at w₁ = 2 rad/s. She pulls arms in, reducing I to 1.5 kg·m². New angular velocity is:",
+    opts: ["1 rad/s", "2 rad/s", "4 rad/s", "6 rad/s"],
+    ans: 2,
+    exp: "By conservation of angular momentum: I₁w₁ = I₂w₂ → 3 × 2 = 1.5 × w₂ → w₂ = 6 / 1.5 = 4 rad/s."
+  },
+  {
+    q: "The torque required to give a flywheel (I = 2 kg·m²) an angular acceleration of 5 rad/s² is:",
+    opts: ["0.4 N·m", "2.5 N·m", "10 N·m", "7 N·m"],
+    ans: 2,
+    exp: "t = I × a = 2 × 5 = 10 N·m. Torque is the rotational analog of force = mass × acceleration."
+  },
+  {
+    q: "For a ring and a disk of equal mass M and radius R, which has greater moment of inertia about the central perpendicular axis?",
+    opts: ["Ring (I = MR²)", "Disk (I = ½MR²)", "Both are equal", "Depends on thickness"],
+    ans: 0,
+    exp: "Ring: I = MR² (all mass at maximum distance R from axis). Disk: I = ½MR² (mass distributed from 0 to R). Ring has greater I."
+  },
+  {
+    q: "A solid sphere and a hollow sphere of same mass and radius roll down an incline from rest. Which reaches the bottom first?",
+    opts: ["Hollow sphere", "Solid sphere", "Both at same time", "Depends on the angle"],
+    ans: 1,
+    exp: "Solid sphere (I = 2/5 MR²) has less I than hollow sphere (I = 2/3 MR²). Less I means more translational acceleration for the same torque, so the solid sphere wins."
+  },
+  {
+    q: "The perpendicular axis theorem (Iz = Ix + Iy) applies only to:",
+    opts: ["All 3D objects", "Only 2D laminas (flat objects)", "Only circular objects", "Only objects with a symmetry axis"],
+    ans: 1,
+    exp: "The perpendicular axis theorem applies only to 2D laminas. The z-axis must be perpendicular to the plane of the object, with x and y axes lying in the plane."
+  }
+];
+
+/* QUIZ LOGIC */
+var qIndex = 0, qScore = 0, qStreak = 0, qBest = 0, answered = false;
+
+function renderQuestion(){
+  var c = document.getElementById('quiz-container');
+  if(qIndex >= questions.length){
+    c.innerHTML = '';
+    var r = document.getElementById('quiz-result');
+    r.classList.add('show');
+    document.getElementById('result-score-text').textContent = qScore + ' / ' + questions.length;
+    var pct = Math.round(qScore / questions.length * 100);
+    var msg = pct >= 83 ? 'Excellent! You are a true Spin Master!' :
+              pct >= 50 ? 'Good work! Keep practicing rotational motion!' :
+              'Keep studying — rotational motion takes practice!';
+    document.getElementById('result-msg').textContent = msg;
+    return;
+  }
+  document.getElementById('quiz-result').classList.remove('show');
+  var q = questions[qIndex];
+  answered = false;
+  var optHtml = q.opts.map(function(o, i){
+    return '<button class="option" onclick="pickAnswer(' + i + ')">' + String.fromCharCode(65 + i) + '. ' + o + '</button>';
+  }).join('');
+  c.innerHTML = '<div class="q-card">' +
+    '<div class="q-num">QUESTION ' + (qIndex + 1) + ' OF ' + questions.length + '</div>' +
+    '<div class="q-text">' + q.q + '</div>' +
+    '<div class="options" id="opts">' + optHtml + '</div>' +
+    '<div class="feedback" id="feedback"></div>' +
+    '<button class="next-btn" id="nxt" onclick="nextQ()">' +
+    (qIndex === questions.length - 1 ? 'See Results' : 'Next Question') +
+    '</button></div>';
+  updateScoreDisplay();
+}
+
+function pickAnswer(i){
+  if(answered) return;
+  answered = true;
+  var q = questions[qIndex];
+  var opts = document.querySelectorAll('.option');
+  opts.forEach(function(o){ o.disabled = true; });
+  if(i === q.ans){
+    opts[i].classList.add('correct');
+    qScore++; qStreak++;
+    if(qStreak > qBest) qBest = qStreak;
+  } else {
+    opts[i].classList.add('wrong');
+    opts[q.ans].classList.add('correct');
+    qStreak = 0;
+  }
+  var fb = document.getElementById('feedback');
+  fb.className = 'feedback ' + (i === q.ans ? 'correct' : 'wrong') + ' show';
+  fb.textContent = (i === q.ans ? 'Correct! ' : 'Wrong. ') + q.exp;
+  document.getElementById('nxt').classList.add('show');
+  updateScoreDisplay();
+  document.getElementById('hdr-score').textContent = qScore;
+  document.getElementById('hdr-streak').textContent = qStreak;
+  document.getElementById('hdr-best').textContent = qBest;
+}
+
+function nextQ(){ qIndex++; renderQuestion(); }
+
+function updateScoreDisplay(){
+  document.getElementById('q-score').textContent = qScore;
+  document.getElementById('q-streak').textContent = qStreak;
+}
+
+function restartQuiz(){
+  qIndex = 0; qScore = 0; qStreak = 0;
+  document.getElementById('quiz-result').classList.remove('show');
+  renderQuestion();
+  updateScoreDisplay();
+}
+
+renderQuestion();
+</script>
+</body>
+</html>

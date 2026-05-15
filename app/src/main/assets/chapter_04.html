@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Plane Rider — Motion in a Plane</title>
+<link href="https://fonts.googleapis.com/css2?family=Aldrich&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0e1a;
+  --card:#111827;
+  --border:#1e293b;
+  --accent:#00ff88;
+  --sky:#38bdf8;
+  --gold:#fbbf24;
+  --text:#e2e8f0;
+  --muted:#64748b;
+  --danger:#f87171;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Aldrich',sans-serif;min-height:100vh;}
+header{background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 60%,#0f2d1a 100%);padding:18px 16px 14px;border-bottom:2px solid var(--accent);position:sticky;top:0;z-index:100;}
+header h1{font-size:1.3rem;color:var(--accent);letter-spacing:1px;}
+header p{font-size:0.75rem;color:var(--sky);margin-top:3px;}
+.tabs{display:flex;background:#0d1117;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{flex:1;min-width:80px;padding:12px 8px;text-align:center;font-family:'Aldrich',sans-serif;font-size:0.72rem;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;transition:all .25s;white-space:nowrap;}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);background:#0a1a0f;}
+.tab-content{display:none;padding:16px;}
+.tab-content.active{display:block;}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;}
+.card h2{font-size:1rem;color:var(--sky);margin-bottom:10px;border-bottom:1px solid var(--border);padding-bottom:6px;}
+.card h3{font-size:0.88rem;color:var(--gold);margin:10px 0 6px;}
+.card p,.card li{font-size:0.82rem;line-height:1.65;color:var(--text);}
+.card ul,.card ol{padding-left:18px;}
+.card li{margin-bottom:4px;}
+.formula{background:#0d1f2d;border-left:3px solid var(--sky);border-radius:6px;padding:10px 14px;font-family:monospace;font-size:0.85rem;color:#7dd3fc;margin:8px 0;}
+.highlight{background:#0d2218;border-left:3px solid var(--accent);border-radius:6px;padding:10px 14px;font-size:0.82rem;color:var(--text);margin:8px 0;}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.7rem;margin:2px;background:#1e293b;color:var(--sky);}
+table{width:100%;border-collapse:collapse;font-size:0.78rem;margin-top:8px;}
+th{background:#1e293b;color:var(--gold);padding:7px 8px;text-align:left;}
+td{padding:6px 8px;border-bottom:1px solid var(--border);color:var(--text);}
+tr:hover td{background:#131e2e;}
+
+/* SIM */
+#sim-container{background:#050d18;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:14px;position:relative;}
+#three-canvas-container{width:100%;height:300px;display:block;background:#030a14;}
+.sim-controls{padding:12px 14px;background:#0a1020;border-top:1px solid var(--border);}
+.mode-btns{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+.mode-btn{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:#1a2030;color:var(--muted);font-family:'Aldrich',sans-serif;font-size:0.72rem;cursor:pointer;transition:all .2s;}
+.mode-btn.active{background:var(--accent);color:#000;border-color:var(--accent);}
+.slider-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.slider-row label{font-size:0.72rem;color:var(--muted);width:110px;flex-shrink:0;}
+.slider-row input[type=range]{flex:1;accent-color:var(--accent);}
+.slider-row span{font-size:0.72rem;color:var(--accent);width:44px;text-align:right;}
+.btn-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+.btn{padding:7px 18px;border-radius:20px;border:none;font-family:'Aldrich',sans-serif;font-size:0.75rem;cursor:pointer;transition:all .2s;}
+.btn-primary{background:var(--accent);color:#000;}
+.btn-secondary{background:#1e293b;color:var(--text);border:1px solid var(--border);}
+.btn:active{transform:scale(0.95);}
+.readout{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.ro-item{background:#0d1f2d;border-radius:6px;padding:5px 10px;font-size:0.7rem;color:var(--sky);}
+.ro-item span{color:var(--accent);}
+
+/* QUIZ */
+.quiz-q{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;}
+.quiz-q p{font-size:0.84rem;margin-bottom:10px;color:var(--text);}
+.quiz-opt{display:block;padding:8px 12px;margin:4px 0;border-radius:8px;border:1px solid var(--border);background:#0d1117;color:var(--text);font-size:0.78rem;cursor:pointer;transition:all .2s;width:100%;text-align:left;font-family:'Aldrich',sans-serif;}
+.quiz-opt:hover{border-color:var(--sky);background:#0d1f2d;}
+.quiz-opt.correct{background:#052010;border-color:var(--accent);color:var(--accent);}
+.quiz-opt.wrong{background:#200505;border-color:var(--danger);color:var(--danger);}
+.quiz-exp{font-size:0.76rem;color:var(--muted);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:none;}
+.quiz-exp.show{display:block;}
+.score-bar{height:6px;background:var(--border);border-radius:3px;margin-top:14px;overflow:hidden;}
+.score-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .4s;}
+
+/* KEY CONCEPTS */
+.kc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+@media(max-width:420px){.kc-grid{grid-template-columns:1fr;}}
+.kc-card{background:#0d1525;border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;}
+.kc-icon{font-size:1.8rem;margin-bottom:6px;}
+.kc-title{font-size:0.78rem;color:var(--gold);margin-bottom:4px;}
+.kc-desc{font-size:0.72rem;color:var(--muted);line-height:1.5;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>✈️ Plane Rider</h1>
+  <p>Chapter 4 — Motion in a Plane</p>
+</header>
+
+<div class="tabs">
+  <div class="tab active" data-tab="learn">📖 Learn</div>
+  <div class="tab" data-tab="sim">🚀 Lab</div>
+  <div class="tab" data-tab="formulas">📐 Formulas</div>
+  <div class="tab" data-tab="quiz">🎯 Quiz</div>
+  <div class="tab" data-tab="notes">📝 Notes</div>
+</div>
+
+<!-- LEARN TAB -->
+<div class="tab-content active" data-content="learn">
+
+  <div class="card">
+    <h2>What is Motion in a Plane?</h2>
+    <p>When an object moves in two dimensions simultaneously, it is called <strong style="color:var(--accent)">motion in a plane</strong>. Unlike 1D motion, both x and y components must be tracked independently.</p>
+    <div class="highlight">Key insight: A 2D motion can always be split into two independent 1D motions along perpendicular axes.</div>
+  </div>
+
+  <div class="kc-grid" style="margin-bottom:14px;">
+    <div class="kc-card">
+      <div class="kc-icon">🎯</div>
+      <div class="kc-title">Projectile Motion</div>
+      <div class="kc-desc">Motion under gravity with horizontal velocity — a parabolic path</div>
+    </div>
+    <div class="kc-card">
+      <div class="kc-icon">🔄</div>
+      <div class="kc-title">Circular Motion</div>
+      <div class="kc-desc">Constant speed, changing direction — centripetal acceleration always inward</div>
+    </div>
+    <div class="kc-card">
+      <div class="kc-icon">↗️</div>
+      <div class="kc-title">Vectors</div>
+      <div class="kc-desc">Displacement, velocity, acceleration — all have magnitude and direction</div>
+    </div>
+    <div class="kc-card">
+      <div class="kc-icon">🚢</div>
+      <div class="kc-title">Relative Motion</div>
+      <div class="kc-desc">Velocity of one object as seen from another moving frame</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Projectile Motion</h2>
+    <p>A projectile is launched with initial speed <em>u</em> at angle <em>θ</em> to the horizontal. Gravity acts only downward.</p>
+    <h3>Horizontal (x) — No acceleration</h3>
+    <div class="formula">xₜ = u·cos θ · t</div>
+    <h3>Vertical (y) — Uniform acceleration g</h3>
+    <div class="formula">yₜ = u·sin θ · t − ½g·t²</div>
+    <h3>Key Results</h3>
+    <table>
+      <tr><th>Quantity</th><th>Formula</th></tr>
+      <tr><td>Time of flight</td><td>T = 2u·sin θ / g</td></tr>
+      <tr><td>Maximum range</td><td>R = u²·sin 2θ / g</td></tr>
+      <tr><td>Max height</td><td>H = u²·sin²θ / 2g</td></tr>
+      <tr><td>Max range angle</td><td>θ = 45°</td></tr>
+    </table>
+    <div class="highlight">Complementary angles (e.g. 30° and 60°) give the same range!</div>
+  </div>
+
+  <div class="card">
+    <h2>Uniform Circular Motion</h2>
+    <p>Object moves on a circle of radius <em>r</em> with constant speed <em>v</em> but continuously changing direction.</p>
+    <h3>Angular quantities</h3>
+    <div class="formula">ω = 2π/T = 2πf &nbsp;&nbsp; v = rω</div>
+    <h3>Centripetal Acceleration</h3>
+    <div class="formula">aᶜ = v²/r = ω²r &nbsp;&nbsp; (directed toward center)</div>
+    <h3>Centripetal Force</h3>
+    <div class="formula">F = mv²/r = mω²r</div>
+    <div class="highlight">Centripetal force is NOT a new force — it is provided by tension, gravity, normal force, friction, etc.</div>
+    <h3>Period and Frequency</h3>
+    <div class="formula">T = 2πr/v &nbsp;&nbsp; f = 1/T &nbsp;&nbsp; [f in Hz, T in s]</div>
+  </div>
+
+  <div class="card">
+    <h2>Relative Velocity in 2D</h2>
+    <p>Velocity of object A as seen from object B:</p>
+    <div class="formula">v⃗_AB = v⃗_A − v⃗_B</div>
+    <h3>River-boat problem</h3>
+    <p>Boat velocity relative to ground = boat velocity relative to river + river velocity</p>
+    <div class="formula">v⃗_ground = v⃗_boat + v⃗_river</div>
+    <h3>To cross river in minimum time</h3>
+    <div class="formula">Point boat perpendicular to river bank</div>
+    <h3>To cross river in minimum distance</h3>
+    <div class="formula">Aim upstream at angle θ = sin⁻¹(v_river/v_boat)</div>
+  </div>
+
+  <div class="card">
+    <h2>Vectors — Quick Revision</h2>
+    <h3>Addition (Triangle / Parallelogram law)</h3>
+    <div class="formula">|R⃗| = √(A²+B²+2AB·cos α) &nbsp;&nbsp; tan φ = B·sin α/(A+B·cos α)</div>
+    <h3>Dot product (scalar)</h3>
+    <div class="formula">A⃗·B⃗ = AB·cos θ &nbsp;&nbsp; (gives scalar)</div>
+    <h3>Cross product (vector)</h3>
+    <div class="formula">|A⃗×B⃗| = AB·sin θ &nbsp;&nbsp; (gives vector ⊥ to both)</div>
+    <h3>Unit vectors</h3>
+    <div class="formula">î, ĵ, k̂ along x, y, z axes respectively</div>
+  </div>
+
+</div>
+
+<!-- SIM TAB -->
+<div class="tab-content" data-content="sim">
+  <div id="sim-container">
+    <div id="three-canvas-container"></div>
+    <div class="sim-controls">
+      <div class="mode-btns">
+        <button class="mode-btn active" onclick="setMode('proj')">🎯 Projectile</button>
+        <button class="mode-btn" onclick="setMode('circ')">🔄 Circular</button>
+      </div>
+
+      <div id="proj-controls">
+        <div class="slider-row">
+          <label>Speed (m/s)</label>
+          <input type="range" id="sl-speed" min="10" max="40" value="25" oninput="updateSliders()">
+          <span id="lbl-speed">25</span>
+        </div>
+        <div class="slider-row">
+          <label>Angle (°)</label>
+          <input type="range" id="sl-angle" min="10" max="80" value="45" oninput="updateSliders()">
+          <span id="lbl-angle">45</span>
+        </div>
+      </div>
+
+      <div id="circ-controls" style="display:none;">
+        <div class="slider-row">
+          <label>Speed (m/s)</label>
+          <input type="range" id="sl-cspeed" min="3" max="18" value="8" oninput="updateSliders()">
+          <span id="lbl-cspeed">8</span>
+        </div>
+        <div class="slider-row">
+          <label>Radius (m)</label>
+          <input type="range" id="sl-radius" min="2" max="8" value="4" oninput="updateSliders()">
+          <span id="lbl-radius">4</span>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="launchSim()">▶ Launch</button>
+        <button class="btn btn-secondary" onclick="resetSim()">↺ Reset</button>
+      </div>
+
+      <div class="readout" id="readout">
+        <div class="ro-item">Range: <span id="ro-range">—</span></div>
+        <div class="ro-item">Height: <span id="ro-height">—</span></div>
+        <div class="ro-item">Flight time: <span id="ro-time">—</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FORMULAS TAB -->
+<div class="tab-content" data-content="formulas">
+  <div class="card">
+    <h2>Projectile Motion</h2>
+    <div class="formula">Horizontal: x = u·cos θ · t</div>
+    <div class="formula">Vertical: y = u·sin θ · t − ½g·t²</div>
+    <div class="formula">Time of flight: T = 2u·sin θ / g</div>
+    <div class="formula">Range: R = u²·sin 2θ / g</div>
+    <div class="formula">Max height: H = u²·sin²θ / 2g</div>
+    <div class="formula">Velocity at t: vₓ = u·cos θ, vᵧ = u·sin θ − gt</div>
+    <div class="formula">Speed at t: v = √(vₓ²+vᵧ²)</div>
+  </div>
+
+  <div class="card">
+    <h2>Circular Motion</h2>
+    <div class="formula">v = rω = 2πr/T = 2πrf</div>
+    <div class="formula">Centripetal accel: aᶜ = v²/r = rω²</div>
+    <div class="formula">Centripetal force: F = mv²/r</div>
+    <div class="formula">Angular velocity: ω = dθ/dt = 2π/T</div>
+    <div class="formula">Angular accel: α = dω/dt</div>
+    <div class="formula">Arc length: s = rθ</div>
+  </div>
+
+  <div class="card">
+    <h2>Vectors</h2>
+    <div class="formula">Resultant: R = √(A²+B²+2AB cos α)</div>
+    <div class="formula">Dot product: A⃗·B⃗ = ABcos θ</div>
+    <div class="formula">Cross product: |A⃗×B⃗| = AB sin θ</div>
+    <div class="formula">Components: Aₓ = A cos θ, Aᵧ = A sin θ</div>
+  </div>
+
+  <div class="card">
+    <h2>Relative Motion</h2>
+    <div class="formula">v⃗_AB = v⃗_A − v⃗_B</div>
+    <div class="formula">River crossing (min time): t = d/v_boat</div>
+    <div class="formula">Drift = v_river × d/v_boat</div>
+  </div>
+</div>
+
+<!-- QUIZ TAB -->
+<div class="tab-content" data-content="quiz">
+  <div style="margin-bottom:12px;font-size:0.8rem;color:var(--muted);">Score: <span id="quiz-score" style="color:var(--accent);">0</span> / <span id="quiz-total">8</span></div>
+  <div class="score-bar"><div class="score-fill" id="score-fill" style="width:0%"></div></div>
+  <br>
+
+  <div class="quiz-q" id="q1">
+    <p>1. A ball is thrown at 45° with speed 20 m/s. What is the maximum range? (g = 10 m/s²)</p>
+    <button class="quiz-opt" onclick="answer(this,'q1',false)">20 m</button>
+    <button class="quiz-opt" onclick="answer(this,'q1',false)">30 m</button>
+    <button class="quiz-opt" onclick="answer(this,'q1',true)">40 m</button>
+    <button class="quiz-opt" onclick="answer(this,'q1',false)">50 m</button>
+    <div class="quiz-exp">R = u²sin2θ/g = 400×1/10 = 40 m. At 45°, sin2θ = sin90° = 1.</div>
+  </div>
+
+  <div class="quiz-q" id="q2">
+    <p>2. In projectile motion, which component of velocity remains constant throughout?</p>
+    <button class="quiz-opt" onclick="answer(this,'q2',false)">Vertical</button>
+    <button class="quiz-opt" onclick="answer(this,'q2',true)">Horizontal</button>
+    <button class="quiz-opt" onclick="answer(this,'q2',false)">Both</button>
+    <button class="quiz-opt" onclick="answer(this,'q2',false)">Neither</button>
+    <div class="quiz-exp">Horizontal velocity (uₓ = u cos θ) is constant because no horizontal force acts (ignoring air resistance).</div>
+  </div>
+
+  <div class="quiz-q" id="q3">
+    <p>3. A car moves in a circle of radius 50 m at speed 10 m/s. Centripetal acceleration?</p>
+    <button class="quiz-opt" onclick="answer(this,'q3',false)">1 m/s²</button>
+    <button class="quiz-opt" onclick="answer(this,'q3',true)">2 m/s²</button>
+    <button class="quiz-opt" onclick="answer(this,'q3',false)">5 m/s²</button>
+    <button class="quiz-opt" onclick="answer(this,'q3',false)">0.2 m/s²</button>
+    <div class="quiz-exp">aᶜ = v²/r = 100/50 = 2 m/s². Always directed toward the center.</div>
+  </div>
+
+  <div class="quiz-q" id="q4">
+    <p>4. Two projectiles launched at angles 30° and 60° with the same speed. Their ranges are:</p>
+    <button class="quiz-opt" onclick="answer(this,'q4',false)">Different</button>
+    <button class="quiz-opt" onclick="answer(this,'q4',true)">Equal</button>
+    <button class="quiz-opt" onclick="answer(this,'q4',false)">Double</button>
+    <button class="quiz-opt" onclick="answer(this,'q4',false)">Half</button>
+    <div class="quiz-exp">Complementary angles (30°+60°=90°) give identical range. R = u²sin2θ/g, and sin60°=sin120°.</div>
+  </div>
+
+  <div class="quiz-q" id="q5">
+    <p>5. Centripetal force in uniform circular motion does:</p>
+    <button class="quiz-opt" onclick="answer(this,'q5',false)">Increases speed</button>
+    <button class="quiz-opt" onclick="answer(this,'q5',false)">Decreases speed</button>
+    <button class="quiz-opt" onclick="answer(this,'q5',true)">Changes direction only</button>
+    <button class="quiz-opt" onclick="answer(this,'q5',false)">Does positive work</button>
+    <div class="quiz-exp">Centripetal force is perpendicular to velocity, so it does no work and only changes the direction of motion.</div>
+  </div>
+
+  <div class="quiz-q" id="q6">
+    <p>6. A boat can go 5 m/s in still water. River flows at 3 m/s. Minimum crossing time for 60 m width?</p>
+    <button class="quiz-opt" onclick="answer(this,'q6',false)">10 s</button>
+    <button class="quiz-opt" onclick="answer(this,'q6',true)">12 s</button>
+    <button class="quiz-opt" onclick="answer(this,'q6',false)">15 s</button>
+    <button class="quiz-opt" onclick="answer(this,'q6',false)">20 s</button>
+    <div class="quiz-exp">Minimum time = width/v_boat = 60/5 = 12 s. Point boat perpendicular to bank regardless of current.</div>
+  </div>
+
+  <div class="quiz-q" id="q7">
+    <p>7. At the highest point of projectile, velocity is:</p>
+    <button class="quiz-opt" onclick="answer(this,'q7',false)">Zero</button>
+    <button class="quiz-opt" onclick="answer(this,'q7',true)">Horizontal (u cos θ)</button>
+    <button class="quiz-opt" onclick="answer(this,'q7',false)">Vertical (u sin θ)</button>
+    <button class="quiz-opt" onclick="answer(this,'q7',false)">Maximum</button>
+    <div class="quiz-exp">At the peak, vertical component vᵧ = 0. Only horizontal component (u cos θ) remains.</div>
+  </div>
+
+  <div class="quiz-q" id="q8">
+    <p>8. Angular velocity ω of a body completing 5 revolutions per second?</p>
+    <button class="quiz-opt" onclick="answer(this,'q8',false)">5 rad/s</button>
+    <button class="quiz-opt" onclick="answer(this,'q8',false)">10π rad/s</button>
+    <button class="quiz-opt" onclick="answer(this,'q8',true)">10π rad/s</button>
+    <button class="quiz-opt" onclick="answer(this,'q8',false)">5π rad/s</button>
+    <div class="quiz-exp">ω = 2π × f = 2π × 5 = 10π ≈ 31.4 rad/s.</div>
+  </div>
+</div>
+
+<!-- NOTES TAB -->
+<div class="tab-content" data-content="notes">
+  <div class="card">
+    <h2>Quick Revision Notes</h2>
+    <h3>Projectile Motion — Key Points</h3>
+    <ul>
+      <li>Path is a <strong>parabola</strong></li>
+      <li>Horizontal acceleration = 0; Vertical acceleration = g (downward)</li>
+      <li>At max height: vᵧ = 0, speed = u cos θ (minimum)</li>
+      <li>Angles 45° gives max range; 30° and 60° give same range</li>
+      <li>Time of flight proportional to u sin θ</li>
+    </ul>
+    <h3>Circular Motion — Key Points</h3>
+    <ul>
+      <li>Speed constant, velocity changes direction continuously</li>
+      <li>Centripetal acceleration always points toward center</li>
+      <li>Centripetal force ≠ a new force; it's provided by existing forces</li>
+      <li>No work done by centripetal force (F ⊥ v)</li>
+      <li>In vertical circle, speed is not uniform (gravity helps/opposes)</li>
+    </ul>
+    <h3>Common Mistakes</h3>
+    <ul>
+      <li>Mixing up time of flight vs time to max height (T/2)</li>
+      <li>Thinking centripetal force is "outward" — it is INWARD</li>
+      <li>Forgetting that at 45° range is maximum (not 90°)</li>
+      <li>Confusing ω (rad/s) with f (rev/s); ω = 2πf</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>NCERT Important Concepts</h2>
+    <div class="highlight">Scalar: magnitude only (speed, distance, mass, temperature)<br>Vector: magnitude + direction (velocity, displacement, force)</div>
+    <h3>Position Vector</h3>
+    <div class="formula">r⃗ = xî + yĵ &nbsp;&nbsp; magnitude |r⃗| = √(x²+y²)</div>
+    <h3>Average vs Instantaneous</h3>
+    <p>Average velocity = Δr⃗/Δt; Instantaneous = lim(Δt→0) Δr⃗/Δt = dr⃗/dt</p>
+    <h3>Tags</h3>
+    <div>
+      <span class="tag">Vectors</span>
+      <span class="tag">Projectile</span>
+      <span class="tag">Circular</span>
+      <span class="tag">Relative velocity</span>
+      <span class="tag">2D motion</span>
+      <span class="tag">Parabola</span>
+      <span class="tag">Centripetal</span>
+    </div>
+  </div>
+</div>
+
+<script src="three.min.js"></script>
+<script>
+// ── tab system ──────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.querySelector('.tab-content[data-content="'+t.dataset.tab+'"]').classList.add('active');
+  });
+});
+
+// ── quiz ─────────────────────────────────────────────────────────────────
+let quizScore=0;
+function answer(btn,qid,correct){
+  const q=document.getElementById(qid);
+  if(q.dataset.done)return;
+  q.dataset.done=1;
+  q.querySelectorAll('.quiz-opt').forEach(b=>b.disabled=true);
+  btn.classList.add(correct?'correct':'wrong');
+  if(!correct){q.querySelectorAll('.quiz-opt').forEach(b=>{if(b.onclick.toString().includes('true'))b.classList.add('correct');});}
+  q.querySelector('.quiz-exp').classList.add('show');
+  if(correct){quizScore++;document.getElementById('quiz-score').textContent=quizScore;}
+  const total=parseInt(document.getElementById('quiz-total').textContent);
+  document.getElementById('score-fill').style.width=(quizScore/total*100)+'%';
+}
+
+// ── simulation ────────────────────────────────────────────────────────────
+const threeContainer=document.getElementById('three-canvas-container');
+let scene,camera,renderer,animId;
+let simMode='proj';
+let simRunning=false;
+
+// projectile objects
+let projBall,projTrail=[],groundMesh,cannon;
+// circular objects
+let circBall,orbitRing,circFloor,velArrow,centArrow;
+
+let projT=0,projU=25,projAngle=45;
+let circSpeed=8,circRadius=4,circAngle=0;
+
+function setMode(m){
+  simMode=m;
+  document.querySelectorAll('.mode-btn').forEach((b,i)=>{
+    b.classList.toggle('active',(m==='proj'&&i===0)||(m==='circ'&&i===1));
+  });
+  document.getElementById('proj-controls').style.display=m==='proj'?'':'none';
+  document.getElementById('circ-controls').style.display=m==='circ'?'':'none';
+  // update readout labels
+  const ro=document.getElementById('readout');
+  if(m==='proj'){
+    ro.innerHTML='<div class="ro-item">Range: <span id="ro-range">—</span></div><div class="ro-item">Height: <span id="ro-height">—</span></div><div class="ro-item">Flight time: <span id="ro-time">—</span></div>';
+  } else {
+    ro.innerHTML='<div class="ro-item">Speed: <span id="ro-range">—</span></div><div class="ro-item">Period: <span id="ro-height">—</span></div><div class="ro-item">aᶜ: <span id="ro-time">—</span></div>';
+  }
+  resetSim();
+}
+
+function updateSliders(){
+  document.getElementById('lbl-speed').textContent=document.getElementById('sl-speed').value;
+  document.getElementById('lbl-angle').textContent=document.getElementById('sl-angle').value;
+  document.getElementById('lbl-cspeed').textContent=document.getElementById('sl-cspeed').value;
+  document.getElementById('lbl-radius').textContent=document.getElementById('sl-radius').value;
+}
+
+function initThree(){
+  scene=new THREE.Scene();
+  const w=threeContainer.clientWidth||threeContainer.offsetWidth||window.innerWidth||360;
+  const h=threeContainer.clientHeight||threeContainer.offsetHeight||300;
+  camera=new THREE.PerspectiveCamera(50,w/h,0.1,500);
+  renderer=new THREE.WebGLRenderer({antialias:false,alpha:true});
+  renderer.setSize(w,h);
+  renderer.setPixelRatio(1);
+  threeContainer.appendChild(renderer.domElement);
+
+  scene.add(new THREE.AmbientLight(0xffffff,0.5));
+  const sun=new THREE.DirectionalLight(0xffeedd,1.2);
+  sun.position.set(8,15,10);
+  scene.add(sun);
+  const fill=new THREE.PointLight(0x00ff88,0.7,60);
+  fill.position.set(-10,5,8);
+  scene.add(fill);
+
+  buildProjScene();
+}
+
+// ── Projectile scene ──────────────────────────────────────────────────────
+function buildProjScene(){
+  clearScene();
+  // ground
+  const geo=new THREE.PlaneGeometry(60,20);
+  const mat=new THREE.MeshLambertMaterial({color:0x1a3020});
+  groundMesh=new THREE.Mesh(geo,mat);
+  groundMesh.rotation.x=-Math.PI/2;
+  scene.add(groundMesh);
+
+  // grid lines on ground
+  const grid=new THREE.GridHelper(60,30,0x00ff88,0x1e3a2e);
+  grid.position.y=0.01;
+  scene.add(grid);
+
+  // cannon
+  const cg=new THREE.CylinderGeometry(0.3,0.4,2,8);
+  const cm=new THREE.MeshLambertMaterial({color:0x888888});
+  cannon=new THREE.Mesh(cg,cm);
+  cannon.position.set(-20,1,0);
+  cannon.rotation.z=-Math.PI/4;
+  scene.add(cannon);
+
+  // projectile ball
+  const bg=new THREE.SphereGeometry(0.45,12,8);
+  const bm=new THREE.MeshLambertMaterial({color:0xfbbf24});
+  projBall=new THREE.Mesh(bg,bm);
+  projBall.position.set(-20,1,0);
+  projBall.visible=false;
+  scene.add(projBall);
+
+  projTrail=[];
+  camera.position.set(0,12,28);
+  camera.lookAt(0,4,0);
+}
+
+function launchProj(){
+  projU=parseFloat(document.getElementById('sl-speed').value);
+  projAngle=parseFloat(document.getElementById('sl-angle').value)*Math.PI/180;
+  projT=0;
+  projBall.position.set(-20,1,0);
+  projBall.visible=true;
+  // clear trail
+  projTrail.forEach(m=>scene.remove(m));
+  projTrail=[];
+  // update cannon angle
+  cannon.rotation.z=-(Math.PI/2-projAngle);
+
+  // compute readout
+  const g=9.8;
+  const T=(2*projU*Math.sin(projAngle)/g).toFixed(2);
+  const R=(projU*projU*Math.sin(2*projAngle)/g).toFixed(1);
+  const H=(projU*projU*Math.sin(projAngle)*Math.sin(projAngle)/(2*g)).toFixed(1);
+  document.getElementById('ro-range').textContent=R+' m';
+  document.getElementById('ro-height').textContent=H+' m';
+  document.getElementById('ro-time').textContent=T+' s';
+  simRunning=true;
+}
+
+function stepProj(dt){
+  if(!simRunning||!projBall.visible)return;
+  const g=9.8;
+  projT+=dt;
+  const vx=projU*Math.cos(projAngle);
+  const vy=projU*Math.sin(projAngle);
+  const x=-20+vx*projT*0.5;
+  const y=1+vy*projT*0.5-0.5*g*projT*projT*0.025;
+  projBall.position.set(x,Math.max(y,0.45),0);
+
+  // trail dot every ~4 frames
+  if(Math.round(projT*60)%4===0){
+    const tdot=new THREE.Mesh(
+      new THREE.SphereGeometry(0.15,6,4),
+      new THREE.MeshBasicMaterial({color:0x38bdf8,transparent:true,opacity:0.6})
+    );
+    tdot.position.copy(projBall.position);
+    scene.add(tdot);
+    projTrail.push(tdot);
+    if(projTrail.length>60){scene.remove(projTrail.shift());}
+  }
+
+  if(y<=0){
+    simRunning=false;
+    projBall.position.y=0.45;
+  }
+}
+
+// ── Circular scene ────────────────────────────────────────────────────────
+function buildCircScene(){
+  clearScene();
+  circFloor=new THREE.Mesh(
+    new THREE.PlaneGeometry(30,30),
+    new THREE.MeshLambertMaterial({color:0x0d1a2d})
+  );
+  circFloor.rotation.x=-Math.PI/2;
+  scene.add(circFloor);
+
+  const grid=new THREE.GridHelper(30,15,0x38bdf8,0x132030);
+  grid.position.y=0.01;
+  scene.add(grid);
+
+  circRadius=parseFloat(document.getElementById('sl-radius').value);
+  circSpeed=parseFloat(document.getElementById('sl-cspeed').value);
+
+  // orbit ring
+  const ringGeo=new THREE.RingGeometry(circRadius-0.08,circRadius+0.08,64);
+  const ringMat=new THREE.MeshBasicMaterial({color:0x00ff88,side:THREE.DoubleSide,transparent:true,opacity:0.5});
+  orbitRing=new THREE.Mesh(ringGeo,ringMat);
+  orbitRing.rotation.x=-Math.PI/2;
+  orbitRing.position.y=0.05;
+  scene.add(orbitRing);
+
+  // center dot
+  const cdot=new THREE.Mesh(
+    new THREE.SphereGeometry(0.2,8,6),
+    new THREE.MeshBasicMaterial({color:0xfbbf24})
+  );
+  scene.add(cdot);
+
+  // ball
+  circBall=new THREE.Mesh(
+    new THREE.SphereGeometry(0.4,12,8),
+    new THREE.MeshLambertMaterial({color:0xf87171})
+  );
+  circBall.position.set(circRadius,0.4,0);
+  scene.add(circBall);
+
+  // velocity arrow (cyan)
+  velArrow=new THREE.ArrowHelper(
+    new THREE.Vector3(0,0,-1),
+    circBall.position.clone(),
+    2,0x38bdf8,0.4,0.25
+  );
+  scene.add(velArrow);
+
+  // centripetal arrow (green)
+  centArrow=new THREE.ArrowHelper(
+    new THREE.Vector3(-1,0,0),
+    circBall.position.clone(),
+    2,0x00ff88,0.4,0.25
+  );
+  scene.add(centArrow);
+
+  circAngle=0;
+  camera.position.set(0,18,18);
+  camera.lookAt(0,0,0);
+
+  const ac=(circSpeed*circSpeed/circRadius).toFixed(2);
+  const period=(2*Math.PI*circRadius/circSpeed).toFixed(2);
+  document.getElementById('ro-range').textContent=circSpeed+' m/s';
+  document.getElementById('ro-height').textContent=period+' s';
+  document.getElementById('ro-time').textContent=ac+' m/s²';
+}
+
+function stepCirc(dt){
+  const omega=circSpeed/circRadius;
+  circAngle+=omega*dt;
+  const x=circRadius*Math.cos(circAngle);
+  const z=circRadius*Math.sin(circAngle);
+  circBall.position.set(x,0.4,z);
+
+  // velocity direction: tangent = (-sin θ, 0, cos θ)
+  const vx=-Math.sin(circAngle);
+  const vz=Math.cos(circAngle);
+  velArrow.position.copy(circBall.position);
+  velArrow.setDirection(new THREE.Vector3(vx,0,vz).normalize());
+  velArrow.setLength(Math.min(circSpeed*0.25,3.5),0.4,0.25);
+
+  // centripetal direction: toward center (-cos θ, 0, -sin θ)
+  centArrow.position.copy(circBall.position);
+  centArrow.setDirection(new THREE.Vector3(-Math.cos(circAngle),0,-Math.sin(circAngle)).normalize());
+  const ac=circSpeed*circSpeed/circRadius;
+  centArrow.setLength(Math.min(ac*0.3,3.5),0.4,0.25);
+}
+
+// ── helpers ────────────────────────────────────────────────────────────────
+function clearScene(){
+  if(!scene)return;
+  const toRemove=[];
+  scene.traverse(o=>{if(o.isMesh||o.isLine||o.isArrowHelper)toRemove.push(o);});
+  toRemove.forEach(o=>scene.remove(o));
+  projBall=null;groundMesh=null;cannon=null;
+  circBall=null;orbitRing=null;circFloor=null;velArrow=null;centArrow=null;
+}
+
+function resetSim(){
+  if(!renderer)return;
+  cancelAnimationFrame(animId);
+  simRunning=false;
+  projTrail.forEach(m=>scene.remove(m));
+  projTrail=[];
+  if(simMode==='proj') buildProjScene();
+  else buildCircScene();
+  animate();
+}
+
+function launchSim(){
+  if(simMode==='proj') launchProj();
+  else{
+    circSpeed=parseFloat(document.getElementById('sl-cspeed').value);
+    circRadius=parseFloat(document.getElementById('sl-radius').value);
+    buildCircScene();
+    simRunning=true;
+  }
+}
+
+let lastTime=null;
+function animate(ts){
+  animId=requestAnimationFrame(animate);
+  const dt=lastTime===null?0.016:Math.min((ts-lastTime)/1000,0.05);
+  lastTime=ts||null;
+  if(simMode==='proj') stepProj(dt);
+  else if(simRunning) stepCirc(dt);
+  renderer.render(scene,camera);
+}
+
+// ── ensureThree ────────────────────────────────────────────────────────────
+let threeReady=false;
+function ensureThree(){
+  if(threeReady)return;
+  const w=threeContainer.clientWidth||threeContainer.offsetWidth;
+  if(w===0){setTimeout(ensureThree,150);return;}
+  threeReady=true;
+  initThree();
+  resetSim();
+}
+document.querySelector('.tab[data-tab="sim"]').addEventListener('click',()=>setTimeout(ensureThree,150));
+setTimeout(ensureThree,500);
+</script>
+</body>
+</html>

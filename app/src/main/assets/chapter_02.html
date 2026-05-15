@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Measure Master — Units & Measurements</title>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@500;700;900&family=Share+Tech+Mono&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="three.min.js"></script>
+<style>
+  :root{
+    --bg:#040d1a;--bg2:#071428;
+    --accent:#00e5ff;--violet:#9b59b6;
+    --gold:#f9c74f;--green:#43aa8b;
+    --red:#f94144;--text:#e8f4f8;--muted:#3d6070;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{overflow-x:hidden}
+  body{
+    font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;
+    background-image:
+      radial-gradient(circle at 20% 25%,rgba(0,229,255,.13),transparent 45%),
+      radial-gradient(circle at 80% 75%,rgba(155,89,182,.11),transparent 45%),
+      radial-gradient(circle at 50% 50%,rgba(249,199,79,.07),transparent 50%);
+    padding:20px 16px 60px;
+  }
+  body::before{content:'';position:fixed;inset:0;
+    background-image:linear-gradient(rgba(0,229,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.025) 1px,transparent 1px);
+    background-size:44px 44px;pointer-events:none;z-index:0;}
+  .container{position:relative;z-index:1;max-width:900px;margin:0 auto}
+  header{text-align:center;margin-bottom:28px;padding:20px 0}
+  .title{
+    font-family:'Exo 2',sans-serif;font-weight:900;
+    font-size:clamp(1.8rem,6.5vw,3.4rem);line-height:1;letter-spacing:2px;
+    background:linear-gradient(135deg,var(--accent),var(--gold),var(--violet));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 25px rgba(0,229,255,.4));
+  }
+  .subtitle{font-family:'Share Tech Mono',monospace;color:var(--accent);font-size:.82rem;margin-top:8px;letter-spacing:3px;text-transform:uppercase}
+  .stats{display:flex;justify-content:center;gap:14px;margin-top:16px;flex-wrap:wrap}
+  .stat{background:rgba(255,255,255,.05);border:1px solid rgba(0,229,255,.18);border-radius:12px;padding:8px 16px;font-family:'Share Tech Mono',monospace;font-size:.8rem}
+  .stat strong{color:var(--gold);font-size:1rem}
+  .tabs{display:flex;gap:8px;margin-bottom:22px;background:rgba(255,255,255,.04);padding:6px;border-radius:16px;border:1px solid rgba(255,255,255,.07);overflow-x:auto}
+  .tab{flex:1;min-width:fit-content;padding:11px 14px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;font-size:.9rem;border-radius:10px;transition:all .25s;white-space:nowrap}
+  .tab.active{background:linear-gradient(135deg,var(--accent),var(--violet));color:#040d1a;box-shadow:0 4px 18px rgba(0,229,255,.35)}
+  .panel{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:22px;padding:22px;backdrop-filter:blur(10px);display:none;animation:fadeIn .4s ease}
+  .panel.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .panel h2{font-family:'Exo 2',sans-serif;font-weight:900;font-size:1.5rem;margin-bottom:6px;color:var(--gold);letter-spacing:2px}
+  .panel-sub{color:var(--muted);font-size:.88rem;margin-bottom:18px}
+  .question-box{background:linear-gradient(135deg,rgba(0,229,255,.09),rgba(155,89,182,.06));border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:18px;margin-bottom:14px}
+  .q-text{font-size:1.02rem;font-weight:600;line-height:1.5;margin-bottom:5px}
+  .q-meta{font-family:'Share Tech Mono',monospace;font-size:.72rem;color:var(--accent);letter-spacing:1px}
+  .options{display:grid;gap:9px}
+  .option{background:rgba(255,255,255,.05);border:2px solid rgba(255,255,255,.09);color:var(--text);padding:13px 16px;border-radius:11px;text-align:left;cursor:pointer;font-family:'Nunito',sans-serif;font-size:.93rem;transition:all .2s}
+  .option:hover{background:rgba(0,229,255,.08);border-color:var(--accent);transform:translateX(4px)}
+  .option.correct{background:rgba(67,170,139,.15);border-color:var(--green);color:var(--green)}
+  .option.wrong{background:rgba(249,65,68,.13);border-color:var(--red);color:var(--red)}
+  .option:disabled{cursor:not-allowed}
+  .feedback{margin-top:12px;padding:13px;border-radius:11px;font-size:.88rem;line-height:1.5;display:none}
+  .feedback.show{display:block;animation:fadeIn .3s}
+  .feedback.correct{background:rgba(67,170,139,.09);border-left:4px solid var(--green)}
+  .feedback.wrong{background:rgba(249,65,68,.08);border-left:4px solid var(--red)}
+  .next-btn{margin-top:12px;width:100%;padding:13px;border:none;border-radius:11px;background:linear-gradient(135deg,var(--accent),var(--violet));color:#040d1a;font-weight:800;font-size:.97rem;cursor:pointer;font-family:'Exo 2',sans-serif;letter-spacing:2px;display:none}
+  .next-btn.show{display:block}
+  .flash-stage{perspective:1200px;margin:10px 0 16px}
+  .flash-card{position:relative;width:100%;height:270px;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.4,0,.2,1);cursor:pointer}
+  .flash-card.flipped{transform:rotateY(180deg)}
+  .flash-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:18px;padding:22px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;border:1px solid rgba(255,255,255,.12)}
+  .flash-front{background:linear-gradient(135deg,rgba(0,229,255,.2),rgba(249,199,79,.1));box-shadow:0 18px 50px rgba(0,229,255,.16)}
+  .flash-back{background:linear-gradient(135deg,rgba(155,89,182,.2),rgba(67,170,139,.12));transform:rotateY(180deg);box-shadow:0 18px 50px rgba(155,89,182,.16)}
+  .flash-label{font-family:'Share Tech Mono',monospace;font-size:.68rem;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:12px;opacity:.9}
+  .flash-back .flash-label{color:var(--green)}
+  .flash-term{font-family:'Exo 2',sans-serif;font-weight:900;font-size:clamp(1.3rem,4.5vw,1.9rem);line-height:1.1;background:linear-gradient(135deg,#fff,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:8px}
+  .flash-formula{font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--accent);background:rgba(0,0,0,.35);padding:7px 13px;border-radius:7px;margin-top:7px}
+  .flash-def{font-size:.96rem;line-height:1.55;color:var(--text);max-width:92%}
+  .flash-example{margin-top:12px;font-size:.8rem;color:var(--muted);font-style:italic;line-height:1.4}
+  .flash-tap{position:absolute;bottom:12px;font-size:.68rem;color:var(--muted);font-family:'Share Tech Mono',monospace;letter-spacing:1px}
+  .flash-nav{display:flex;gap:10px;align-items:center;justify-content:space-between}
+  .flash-arrow{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);color:var(--text);width:46px;height:46px;border-radius:50%;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+  .flash-arrow:hover{background:var(--gold);color:#040d1a;transform:scale(1.05)}
+  .flash-arrow:disabled{opacity:.3;cursor:not-allowed}
+  .flash-progress{flex:1;background:rgba(255,255,255,.06);height:5px;border-radius:3px;overflow:hidden}
+  .flash-progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--violet));transition:width .3s}
+  .flash-counter{font-family:'Share Tech Mono',monospace;font-size:.77rem;color:var(--muted);text-align:center;margin-top:9px}
+  .flash-mark{margin-top:13px;display:flex;gap:8px}
+  .mark-btn{flex:1;padding:10px;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:700;font-size:.83rem;cursor:pointer;transition:transform .15s}
+  .mark-btn:active{transform:scale(.96)}
+  .mark-known{background:rgba(67,170,139,.13);color:var(--green);border:1px solid var(--green)}
+  .mark-review{background:rgba(249,65,68,.11);color:var(--red);border:1px solid var(--red)}
+  .sim-mode-toggle{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap}
+  .mode-btn{flex:1;min-width:fit-content;padding:9px 12px;border:2px solid rgba(255,255,255,.1);border-radius:10px;background:transparent;color:var(--muted);cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;font-size:.85rem;transition:all .2s;white-space:nowrap}
+  .mode-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(0,229,255,.1)}
+  .sim-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+  .control{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);padding:11px;border-radius:11px}
+  .control label{display:block;font-family:'Share Tech Mono',monospace;font-size:.68rem;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
+  .control input[type=range]{width:100%;accent-color:var(--gold)}
+  .control .val{font-family:'Exo 2',sans-serif;font-weight:700;color:var(--gold);font-size:1.05rem}
+  #three-container canvas{display:block}
+  .sim-buttons{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+  .sim-btn{flex:1;min-width:90px;padding:11px;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:700;cursor:pointer;transition:transform .15s}
+  .sim-btn:active{transform:scale(.96)}
+  .btn-play{background:var(--accent);color:#040d1a}
+  .btn-reset{background:rgba(255,255,255,.09);color:var(--text)}
+  .readout{margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:7px}
+  .read-card{background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.18);border-radius:10px;padding:9px;text-align:center}
+  .read-card .lbl{font-size:.67rem;color:var(--accent);font-family:'Share Tech Mono',monospace}
+  .read-card .num{font-family:'Exo 2',sans-serif;font-weight:700;font-size:.92rem;color:var(--text);word-break:break-all}
+  .dim-output{margin-top:12px;background:rgba(0,0,0,.3);border:1px solid rgba(0,229,255,.2);border-radius:12px;padding:14px;font-family:'Share Tech Mono',monospace;font-size:.85rem;line-height:1.8}
+  .dim-ok{color:var(--green)} .dim-err{color:var(--red)} .dim-neutral{color:var(--accent)}
+  .match-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .match-card{background:rgba(255,255,255,.05);border:2px solid rgba(255,255,255,.09);padding:13px;border-radius:11px;cursor:pointer;font-size:.83rem;text-align:center;min-height:66px;display:flex;align-items:center;justify-content:center;transition:all .2s}
+  .match-card:hover{border-color:var(--accent)}
+  .match-card.selected{border-color:var(--gold);background:rgba(249,199,79,.12)}
+  .match-card.matched{background:rgba(67,170,139,.13);border-color:var(--green);color:var(--green);cursor:default;opacity:.75}
+  .match-card.wrong{background:rgba(249,65,68,.11);border-color:var(--red);animation:shake .3s}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+  .reset-link{display:block;text-align:center;margin-top:16px;color:var(--muted);font-size:.83rem;cursor:pointer;text-decoration:underline;background:none;border:none;width:100%}
+  .win-overlay{position:fixed;inset:0;background:rgba(4,13,26,.95);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+  .win-overlay.show{display:flex;animation:fadeIn .4s}
+  .win-card{background:linear-gradient(135deg,var(--accent),var(--violet));color:#040d1a;padding:28px;border-radius:18px;text-align:center;max-width:320px}
+  .win-card h2{font-family:'Exo 2',sans-serif;font-weight:900;font-size:2rem;margin-bottom:8px;letter-spacing:2px}
+  .win-card button{margin-top:14px;padding:11px 26px;border:none;border-radius:10px;background:#040d1a;color:var(--gold);font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1 class="title">MEASURE MASTER</h1>
+    <div class="subtitle">// Class 11 Physics · Units & Measurements</div>
+    <div class="stats">
+      <div class="stat">SCORE <strong id="score">0</strong></div>
+      <div class="stat">STREAK <strong id="streak">0</strong>🔥</div>
+      <div class="stat">LEVEL <strong id="level">1</strong></div>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="quiz">🧠 Quiz</button>
+    <button class="tab" data-tab="flash">🎴 Cards</button>
+    <button class="tab" data-tab="sim">📏 Lab</button>
+    <button class="tab" data-tab="match">🔗 Match</button>
+  </div>
+
+  <section class="panel active" id="quiz">
+    <h2>BRAIN BOOST</h2>
+    <p class="panel-sub">Test your units & measurements knowledge — +10 per correct answer!</p>
+    <div id="quiz-box"></div>
+  </section>
+
+  <section class="panel" id="flash">
+    <h2>FLASH CARDS</h2>
+    <p class="panel-sub">Tap to flip. Definitions, formulas and examples all in one place.</p>
+    <div class="flash-stage">
+      <div class="flash-card" id="flash-card">
+        <div class="flash-face flash-front">
+          <div class="flash-label">CONCEPT</div>
+          <div class="flash-term" id="f-term">Loading…</div>
+          <div class="flash-tap">tap to flip ↻</div>
+        </div>
+        <div class="flash-face flash-back">
+          <div class="flash-label">EXPLANATION</div>
+          <div class="flash-def" id="f-def"></div>
+          <div class="flash-formula" id="f-formula"></div>
+          <div class="flash-example" id="f-example"></div>
+          <div class="flash-tap">tap to flip back ↺</div>
+        </div>
+      </div>
+    </div>
+    <div class="flash-nav">
+      <button class="flash-arrow" id="f-prev">←</button>
+      <div class="flash-progress"><div class="flash-progress-bar" id="f-bar"></div></div>
+      <button class="flash-arrow" id="f-next">→</button>
+    </div>
+    <div class="flash-counter" id="f-counter">1 / 12</div>
+    <div class="flash-mark">
+      <button class="mark-btn mark-review" id="f-review">🔁 Need Review</button>
+      <button class="mark-btn mark-known" id="f-known">✓ Got It (+5)</button>
+    </div>
+  </section>
+
+  <section class="panel" id="sim">
+    <h2>MEASUREMENT LAB — 3D</h2>
+    <p class="panel-sub">Three modes: Dimensional Analysis, Significant Figures, Error Analysis. <span style="color:var(--gold)">Drag to rotate</span></p>
+    <div class="sim-mode-toggle">
+      <button class="mode-btn active" id="btn-dim">📐 Dimensions</button>
+      <button class="mode-btn" id="btn-sig">🔢 Sig. Figures</button>
+      <button class="mode-btn" id="btn-error">⚠️ Error Analysis</button>
+    </div>
+    <div class="sim-controls" id="sim-controls"></div>
+    <div id="three-container" style="width:100%;height:380px;border-radius:16px;overflow:hidden;border:1px solid rgba(0,229,255,.2);background:radial-gradient(ellipse at 50% 30%,#071428 0%,#040d1a 100%);position:relative;cursor:grab;touch-action:none"></div>
+    <div class="sim-buttons">
+      <button class="sim-btn btn-play" id="play-btn">▶ Analyse</button>
+      <button class="sim-btn btn-reset" id="reset-btn">↺ Reset</button>
+    </div>
+    <div class="readout" id="readout-grid"></div>
+    <div class="dim-output" id="dim-output"></div>
+    <p style="margin-top:10px;font-size:.77rem;color:var(--muted);text-align:center;font-family:'Share Tech Mono',monospace" id="formula-bar">
+      [M L T] dimensional formula &nbsp;|&nbsp; % error = (Δa/a)×100
+    </p>
+  </section>
+
+  <section class="panel" id="match">
+    <h2>CONCEPT MATCH</h2>
+    <p class="panel-sub">Match each term with its correct meaning</p>
+    <div class="match-grid" id="match-grid"></div>
+    <button class="reset-link" id="match-reset">↺ Restart match game</button>
+  </section>
+</div>
+
+<div class="win-overlay" id="win">
+  <div class="win-card">
+    <h2>📏 LEVEL UP!</h2>
+    <p id="win-msg">Precision unlocked!</p>
+    <button onclick="document.getElementById('win').classList.remove('show')">Continue</button>
+  </div>
+</div>
+
+<script>
+let score=0,streak=0,level=1;
+function updateStats(){
+  document.getElementById('score').textContent=score;
+  document.getElementById('streak').textContent=streak;
+  document.getElementById('level').textContent=level;
+  const nl=Math.floor(score/50)+1;
+  if(nl>level){level=nl;showWin('Level '+nl+' unlocked! 📏');}
+}
+function showWin(msg){document.getElementById('win-msg').textContent=msg;document.getElementById('win').classList.add('show');}
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');document.getElementById(t.dataset.tab).classList.add('active');
+  });
+});
+
+const questions=[
+  {q:'The dimensional formula of Force is:',
+   opts:['[MLT⁻¹]','[MLT⁻²]','[ML²T⁻²]','[ML⁻¹T⁻²]'],correct:1,
+   explain:'F = ma → [M][LT⁻²] = [MLT⁻²]. Force has dimensions of mass × acceleration.'},
+  {q:'Which of the following is a dimensionless quantity?',
+   opts:['Velocity','Strain','Force','Pressure'],correct:1,
+   explain:'Strain = ΔL/L = length/length → dimensionless [M⁰L⁰T⁰]. Also: angle, refractive index, relative density.'},
+  {q:'The number of significant figures in 0.00302 is:',
+   opts:['5','3','6','2'],correct:1,
+   explain:'Leading zeros are NOT significant. Only 3, 0, 2 are significant → 3 significant figures.'},
+  {q:'Absolute error is defined as:',
+   opts:['(Measured − True)/True × 100','|True − Measured|','Measured/True','Sum of all errors'],correct:1,
+   explain:'Absolute error Δa = |a_true − a_measured|. It has the same units as the measured quantity.'},
+  {q:'If A = 2.5 ± 0.1 cm and B = 1.5 ± 0.1 cm, then A + B has error:',
+   opts:['± 0.01 cm','± 0.2 cm','± 0.1 cm','± 0.05 cm'],correct:1,
+   explain:'For addition/subtraction, absolute errors ADD: Δ(A+B) = ΔA + ΔB = 0.1 + 0.1 = ± 0.2 cm.'},
+  {q:'The SI unit of luminous intensity is:',
+   opts:['Lumen','Candela','Lux','Watt'],correct:1,
+   explain:'Candela (cd) is the SI base unit of luminous intensity. The 7 SI base units include: m, kg, s, A, K, mol, cd.'},
+  {q:'Dimensional formula of pressure is same as that of:',
+   opts:['Force','Energy','Stress','Momentum'],correct:2,
+   explain:'Pressure = F/A = [MLT⁻²]/[L²] = [ML⁻¹T⁻²]. Stress = F/A has the same formula [ML⁻¹T⁻²].'},
+  {q:'The number of significant figures in 3.400 × 10³ is:',
+   opts:['2','3','4','5'],correct:2,
+   explain:'In scientific notation, all digits shown are significant: 3, 4, 0, 0 → 4 significant figures. Trailing zeros after decimal point ARE significant.'},
+  {q:'If x = a²b/c, the percentage error in x is:',
+   opts:['%Δa + %Δb + %Δc','2%Δa + %Δb + %Δc','2%Δa + %Δb − %Δc','%Δa² + %Δb + %Δc'],correct:1,
+   explain:'For x = aⁿbᵐ/cᵖ: %Δx = n×%Δa + m×%Δb + p×%Δc. Here n=2,m=1,p=1 → 2%Δa + %Δb + %Δc.'},
+  {q:'Which method can be used to determine the distance of a nearby star?',
+   opts:['Echo method','Triangulation','Parallax method','SONAR'],correct:2,
+   explain:'Parallax method: measure the angular shift of a star against distant stars as Earth moves around the Sun. Distance = baseline/parallax angle.'}
+];
+let qIdx=0;
+function renderQuestion(){
+  if(qIdx>=questions.length)qIdx=0;
+  const q=questions[qIdx];
+  document.getElementById('quiz-box').innerHTML=`
+    <div class="question-box">
+      <div class="q-meta">QUESTION ${qIdx+1} / ${questions.length}</div>
+      <div class="q-text">${q.q}</div>
+    </div>
+    <div class="options">${q.opts.map((o,i)=>`<button class="option" data-i="${i}">${String.fromCharCode(65+i)}. ${o}</button>`).join('')}</div>
+    <div class="feedback" id="fb"></div>
+    <button class="next-btn" id="next">Next Question →</button>`;
+  document.querySelectorAll('.option').forEach(b=>b.addEventListener('click',()=>handleAnswer(b)));
+  document.getElementById('next').addEventListener('click',()=>{qIdx++;renderQuestion();});
+}
+function handleAnswer(btn){
+  const i=parseInt(btn.dataset.i),q=questions[qIdx],fb=document.getElementById('fb');
+  document.querySelectorAll('.option').forEach(b=>b.disabled=true);
+  if(i===q.correct){
+    btn.classList.add('correct');fb.classList.add('show','correct');
+    fb.innerHTML=`✅ <strong>Correct!</strong> ${q.explain}`;
+    score+=10;streak++;if(streak%3===0&&streak>0)score+=5;
+  }else{
+    btn.classList.add('wrong');
+    document.querySelectorAll('.option')[q.correct].classList.add('correct');
+    fb.classList.add('show','wrong');
+    fb.innerHTML=`❌ <strong>Incorrect.</strong> ${q.explain}`;streak=0;
+  }
+  updateStats();document.getElementById('next').classList.add('show');
+}
+renderQuestion();
+
+const flashcards=[
+  {term:'Physical Quantity',def:'Any quantity that can be measured. Has two parts: numerical value and unit. Examples: length, mass, time, temperature, force.',formula:'Physical Quantity = Number × Unit',example:'Length = 5 metres. Speed = 20 m/s'},
+  {term:'SI System',def:'The International System of Units — the globally accepted standard for measurements. Has 7 base units from which all other units are derived.',formula:'7 base units: m, kg, s, A, K, mol, cd',example:'All physics and science worldwide uses SI to ensure consistency'},
+  {term:'Dimensional Formula',def:'An expression showing which base quantities (M, L, T etc.) make up a derived quantity and with what powers.',formula:'[MᵃLᵇTᶜAᵈKᵉ]',example:'Velocity = [M⁰LT⁻¹], Force = [MLT⁻²], Energy = [ML²T⁻²]'},
+  {term:'Dimensional Analysis',def:'Using dimensions to check equations, derive formulas, and convert units. An equation is valid only if both sides have the same dimensions.',formula:'LHS dimensions = RHS dimensions',example:'Check v = u + at: [LT⁻¹] = [LT⁻¹] + [LT⁻²][T] = [LT⁻¹] ✓'},
+  {term:'Significant Figures',def:'All reliably known digits in a measurement plus one estimated digit. Indicates the precision of a measurement.',formula:'Rules: leading zeros NOT sig., trailing zeros after decimal ARE sig.',example:'0.0052 → 2 sig figs. 5.200 → 4 sig figs. 5200 → ambiguous (2-4)'},
+  {term:'Absolute Error',def:'The magnitude of the difference between the measured value and the true (mean) value. Has the same unit as the quantity.',formula:'Δa = |a_true − a_measured|',example:'Measured length = 4.8 cm, true = 5.0 cm → Δa = 0.2 cm'},
+  {term:'Relative Error',def:'The ratio of absolute error to the true (mean) value. Dimensionless — shows how significant the error is relative to the measurement.',formula:'Relative error = Δa / a_mean',example:'Δa = 0.2 cm, a = 5.0 cm → Relative error = 0.04 = 4%'},
+  {term:'Percentage Error',def:'Relative error expressed as a percentage. Most commonly used to communicate measurement precision.',formula:'% error = (Δa/a) × 100%',example:'If a = 5.0 cm ± 0.2 cm → % error = (0.2/5.0)×100 = 4%'},
+  {term:'Error Propagation',def:'When a quantity depends on measured values, errors combine. For products/powers: percentage errors add. For sums: absolute errors add.',formula:'x=aⁿbᵐ → %Δx = n%Δa + m%Δb',example:'x = a²b → %Δx = 2%Δa + %Δb'},
+  {term:'Least Count',def:'The smallest value that can be measured by an instrument. The precision of a measurement cannot exceed the least count of the instrument used.',formula:'Least count = 1 smallest division',example:'Metre scale: LC = 1mm. Vernier caliper: LC = 0.1mm. Screw gauge: LC = 0.01mm'},
+  {term:'Parallax',def:'The apparent shift in the position of an object when viewed from two different positions. Used to measure large distances like stars.',formula:'d = b/θ (b=baseline, θ=parallax angle)',example:'Astronomers measure parallax of stars as Earth orbits the Sun (baseline = 2 AU)'},
+  {term:'Order of Magnitude',def:'The power of 10 closest to a given quantity. Used for rough estimates and comparing very large or small quantities.',formula:'N ≈ 10ⁿ where n = order of magnitude',example:'Speed of light ≈ 3×10⁸ → order of magnitude = 8. Mass of electron = 9×10⁻³¹ → order = −30'}
+];
+let fIdx=0,fKnown=new Set();
+function renderFlash(){
+  const c=flashcards[fIdx];
+  document.getElementById('f-term').textContent=c.term;
+  document.getElementById('f-def').textContent=c.def;
+  document.getElementById('f-formula').textContent=c.formula;
+  document.getElementById('f-example').textContent='📌 '+c.example;
+  document.getElementById('flash-card').classList.remove('flipped');
+  document.getElementById('f-counter').textContent=`${fIdx+1} / ${flashcards.length}`;
+  document.getElementById('f-bar').style.width=`${((fIdx+1)/flashcards.length)*100}%`;
+  document.getElementById('f-prev').disabled=fIdx===0;
+  document.getElementById('f-next').disabled=fIdx===flashcards.length-1;
+}
+document.getElementById('flash-card').addEventListener('click',e=>e.currentTarget.classList.toggle('flipped'));
+document.getElementById('f-prev').addEventListener('click',e=>{e.stopPropagation();if(fIdx>0){fIdx--;renderFlash();}});
+document.getElementById('f-next').addEventListener('click',e=>{e.stopPropagation();if(fIdx<flashcards.length-1){fIdx++;renderFlash();}});
+document.getElementById('f-known').addEventListener('click',e=>{
+  e.stopPropagation();
+  if(!fKnown.has(fIdx)){fKnown.add(fIdx);score+=5;streak++;updateStats();
+    if(fKnown.size===flashcards.length){showWin('All cards mastered! 🏆 +25 bonus');score+=25;updateStats();}}
+  if(fIdx<flashcards.length-1){fIdx++;renderFlash();}
+});
+document.getElementById('f-review').addEventListener('click',e=>{
+  e.stopPropagation();
+  if(fIdx<flashcards.length-1){fIdx++;renderFlash();}else{fIdx=0;renderFlash();}
+});
+renderFlash();
+
+const threeContainer=document.getElementById('three-container');
+let scene,camera,renderer;
+let camAngle=0.4,camTilt=0.35,camDist=14;
+let simMode='dim';
+let sceneObjs=[];
+function addObj(o){scene.add(o);sceneObjs.push(o);return o;}
+function clearObjs(){sceneObjs.forEach(o=>scene.remove(o));sceneObjs=[];}
+
+const quantities={
+  velocity:    {name:'Velocity',      formula:'v = Δx/t',         dim:{M:0,L:1,T:-1}, unit:'m/s'},
+  acceleration:{name:'Acceleration',  formula:'a = Δv/t',         dim:{M:0,L:1,T:-2}, unit:'m/s²'},
+  force:       {name:'Force',         formula:'F = ma',           dim:{M:1,L:1,T:-2}, unit:'N'},
+  energy:      {name:'Energy',        formula:'E = ½mv²',        dim:{M:1,L:2,T:-2}, unit:'J'},
+  pressure:    {name:'Pressure',      formula:'P = F/A',          dim:{M:1,L:-1,T:-2},unit:'Pa'},
+  power:       {name:'Power',         formula:'P = W/t',          dim:{M:1,L:2,T:-3}, unit:'W'},
+  momentum:    {name:'Momentum',      formula:'p = mv',           dim:{M:1,L:1,T:-1}, unit:'kg·m/s'},
+  frequency:   {name:'Frequency',     formula:'f = 1/T',          dim:{M:0,L:0,T:-1}, unit:'Hz'},
+  density:     {name:'Density',       formula:'ρ = m/V',          dim:{M:1,L:-3,T:0}, unit:'kg/m³'},
+  stress:      {name:'Stress',        formula:'σ = F/A',          dim:{M:1,L:-1,T:-2},unit:'Pa'},
+};
+
+function dimString(dim){
+  let s='';
+  if(dim.M!==0)s+=`M${dim.M!==1?dim.M:''}`;
+  if(dim.L!==0)s+=`L${dim.L!==1?dim.L:''}`;
+  if(dim.T!==0)s+=`T${dim.T!==1?dim.T:''}`;
+  return s||'dimensionless';
+}
+
+const quantityKeys=Object.keys(quantities);
+const modeConfigs={
+  dim:[
+    {id:'qty1',label:'Quantity 1',min:0,max:9,val:2,step:1,unit:'',labels:quantityKeys.map(k=>quantities[k].name)},
+    {id:'qty2',label:'Quantity 2',min:0,max:9,val:3,step:1,unit:'',labels:quantityKeys.map(k=>quantities[k].name)},
+  ],
+  sig:[
+    {id:'measurement',label:'Value',min:1,max:999,val:302,step:1,unit:''},
+    {id:'decimals',label:'Decimal Places',min:0,max:5,val:2,step:1,unit:''},
+  ],
+  error:[
+    {id:'trueVal',label:'True Value',min:10,max:200,val:100,step:1,unit:'cm'},
+    {id:'measVal',label:'Measured Value',min:10,max:200,val:94,step:1,unit:'cm'},
+    {id:'powN',label:'Power n (x=aⁿ)',min:1,max:4,val:2,step:1,unit:''},
+  ]
+};
+
+function getV(id){return parseFloat(document.getElementById(id)?.value??0);}
+
+function buildControls(){
+  const cfg=modeConfigs[simMode];
+  document.getElementById('sim-controls').innerHTML=cfg.map(c=>`
+    <div class="control">
+      <label>${c.label}</label>
+      <input type="range" id="${c.id}" min="${c.min}" max="${c.max}" value="${c.val}" step="${c.step}">
+      <div><span class="val" id="${c.id}-val">${c.labels?c.labels[Math.round(c.val)]:c.val}</span><span style="color:var(--muted);font-size:.75rem"> ${c.unit}</span></div>
+    </div>`).join('');
+  cfg.forEach(c=>{
+    const el=document.getElementById(c.id);
+    if(!el)return;
+    el.addEventListener('input',e=>{
+      const v=parseFloat(e.target.value);
+      document.getElementById(c.id+'-val').textContent=c.labels?c.labels[Math.round(v)]:v;
+      if(threeReady){clearObjs();buildModeScene();runAnalysis();}
+    });
+  });
+}
+
+const readoutDefs={
+  dim:[
+    {id:'r-q1dim',lbl:'Qty 1 Dimension'},
+    {id:'r-q2dim',lbl:'Qty 2 Dimension'},
+    {id:'r-match',lbl:'Dimensionally Equal?'},
+    {id:'r-ratio',lbl:'Q1/Q2 Dimension'},
+  ],
+  sig:[
+    {id:'r-sigval',lbl:'Number'},
+    {id:'r-sigcount',lbl:'Sig. Figures'},
+    {id:'r-scinotation',lbl:'Scientific Notation'},
+    {id:'r-order',lbl:'Order of Magnitude'},
+  ],
+  error:[
+    {id:'r-abserr',lbl:'Absolute Error'},
+    {id:'r-relerr',lbl:'Relative Error'},
+    {id:'r-pcterr',lbl:'% Error'},
+    {id:'r-properr',lbl:'% Error in aⁿ'},
+  ]
+};
+
+function buildReadoutCards(){
+  document.getElementById('readout-grid').innerHTML=
+    readoutDefs[simMode].map(r=>`
+      <div class="read-card"><div class="lbl">${r.lbl}</div><div class="num" id="${r.id}">—</div></div>`).join('');
+}
+
+function countSigFigs(numStr){
+  const s=numStr.replace(/^0+\.?0*/,'');
+  const digits=s.replace('.','').replace(/^0+/,'');
+  return digits.length||1;
+}
+
+function runAnalysis(){
+  const output=document.getElementById('dim-output');
+  if(simMode==='dim'){
+    const i1=Math.round(getV('qty1')),i2=Math.round(getV('qty2'));
+    const k1=quantityKeys[Math.min(i1,quantityKeys.length-1)];
+    const k2=quantityKeys[Math.min(i2,quantityKeys.length-1)];
+    const q1=quantities[k1],q2=quantities[k2];
+    const d1=dimString(q1.dim),d2=dimString(q2.dim);
+    const match=d1===d2;
+    const rDim={M:q1.dim.M-q2.dim.M,L:q1.dim.L-q2.dim.L,T:q1.dim.T-q2.dim.T};
+    const rStr=dimString(rDim);
+    document.getElementById('r-q1dim').textContent=`[${d1}]`;
+    document.getElementById('r-q2dim').textContent=`[${d2}]`;
+    document.getElementById('r-match').textContent=match?'✅ Yes':'❌ No';
+    document.getElementById('r-match').style.color=match?'var(--green)':'var(--red)';
+    document.getElementById('r-ratio').textContent=`[${rStr}]`;
+    output.innerHTML=`
+      <span class="dim-neutral">📐 ${q1.name}:</span> ${q1.formula} → <span class="dim-ok">[${d1}]</span> (${q1.unit})<br>
+      <span class="dim-neutral">📐 ${q2.name}:</span> ${q2.formula} → <span class="dim-ok">[${d2}]</span> (${q2.unit})<br>
+      <br>
+      <span class="${match?'dim-ok':'dim-err'}">${match?'✅ Dimensionally EQUAL — these quantities have the same dimensions!':'❌ Dimensionally DIFFERENT — cannot be directly added or equated.'}</span><br>
+      <br>
+      <span class="dim-neutral">Q1 / Q2 dimension:</span> [${rStr}]${rStr==='dimensionless'?' ← Pure ratio (e.g. refractive index, strain)':''}
+    `;
+  }
+  else if(simMode==='sig'){
+    const val=getV('measurement'),dec=Math.round(getV('decimals'));
+    const numStr=(val/Math.pow(10,dec)).toFixed(dec);
+    const sf=countSigFigs(numStr);
+    const order=Math.floor(Math.log10(Math.abs(val/Math.pow(10,dec))||1));
+    const sci=`${(val/Math.pow(10,dec)/Math.pow(10,order)).toFixed(sf-1)} × 10^${order}`;
+    document.getElementById('r-sigval').textContent=numStr;
+    document.getElementById('r-sigcount').textContent=sf+' sig. figs';
+    document.getElementById('r-scinotation').textContent=sci;
+    document.getElementById('r-order').textContent='10^'+order;
+    output.innerHTML=`
+      <span class="dim-neutral">Number:</span> <span class="dim-ok">${numStr}</span><br>
+      <span class="dim-neutral">Significant figures: <span class="dim-ok">${sf}</span></span><br>
+      <br>
+      <span class="dim-neutral">Rules applied:</span><br>
+      ${numStr.startsWith('0.')?'• Leading zeros → <span class="dim-err">NOT significant</span><br>':''}
+      ${numStr.includes('.')&&numStr.endsWith('0')?'• Trailing zeros after decimal → <span class="dim-ok">ARE significant</span><br>':''}
+      ${!numStr.includes('.')?'• Trailing zeros without decimal → <span class="dim-err">AMBIGUOUS (use scientific notation)</span><br>':''}
+      <br>
+      <span class="dim-neutral">Scientific Notation:</span> <span class="dim-ok">${sci}</span><br>
+      <span class="dim-neutral">Order of Magnitude:</span> <span class="dim-ok">10^${order}</span>
+    `;
+  }
+  else{
+    const a=getV('trueVal'),b=getV('measVal'),n=Math.round(getV('powN'));
+    const absErr=Math.abs(a-b);
+    const relErr=absErr/a;
+    const pctErr=(relErr*100);
+    const propErr=n*pctErr;
+    document.getElementById('r-abserr').textContent=absErr.toFixed(2)+' cm';
+    document.getElementById('r-relerr').textContent=relErr.toFixed(4);
+    document.getElementById('r-pcterr').textContent=pctErr.toFixed(2)+'%';
+    document.getElementById('r-properr').textContent=propErr.toFixed(2)+'% (n='+n+')';
+    output.innerHTML=`
+      <span class="dim-neutral">True value (a):</span> ${a} cm<br>
+      <span class="dim-neutral">Measured value:</span> ${b} cm<br>
+      <br>
+      <span class="dim-neutral">Absolute error   Δa =</span> |${a} − ${b}| = <span class="dim-ok">${absErr.toFixed(2)} cm</span><br>
+      <span class="dim-neutral">Relative error      =</span> ${absErr.toFixed(2)}/${a} = <span class="dim-ok">${relErr.toFixed(4)}</span><br>
+      <span class="dim-neutral">Percentage error    =</span> <span class="dim-ok">${pctErr.toFixed(2)}%</span><br>
+      <br>
+      <span class="dim-neutral">For x = a^${n}:</span><br>
+      <span class="dim-neutral">  %Δx = ${n} × %Δa = ${n} × ${pctErr.toFixed(2)} = </span><span class="${propErr<5?'dim-ok':'dim-err'}">${propErr.toFixed(2)}%</span><br>
+      <br>
+      <span class="dim-neutral">Result: x = a^${n} measured as:</span> ${Math.pow(b,n).toFixed(2)} ± ${(propErr/100*Math.pow(a,n)).toFixed(2)} ${n>1?'cm^'+n:'cm'}
+    `;
+  }
+}
+
+function initThree(){
+  scene=new THREE.Scene();
+  const w=threeContainer.clientWidth||threeContainer.offsetWidth||window.innerWidth||360;
+  const h=threeContainer.clientHeight||threeContainer.offsetHeight||400;
+  camera=new THREE.PerspectiveCamera(46,w/h,0.1,200);
+  renderer=new THREE.WebGLRenderer({antialias:false,alpha:true});
+  renderer.setSize(w,h);renderer.setPixelRatio(1);
+  threeContainer.appendChild(renderer.domElement);
+  scene.add(new THREE.AmbientLight(0xffffff,0.5));
+  const sun=new THREE.DirectionalLight(0xaaddff,1.1);sun.position.set(6,12,8);scene.add(sun);
+  const fill=new THREE.PointLight(0x00e5ff,0.9,30);fill.position.set(-6,4,5);scene.add(fill);
+  const rim=new THREE.PointLight(0x9b59b6,0.7,25);rim.position.set(5,2,-5);scene.add(rim);
+  const grid=new THREE.GridHelper(30,30,0x112233,0x0a1a2a);
+  grid.position.y=-3.5;grid.material.opacity=0.4;grid.material.transparent=true;scene.add(grid);
+  let drag=false,lx=0,ly=0;
+  threeContainer.addEventListener('pointerdown',e=>{drag=true;lx=e.clientX;ly=e.clientY;threeContainer.style.cursor='grabbing';});
+  window.addEventListener('pointermove',e=>{if(!drag)return;camAngle-=(e.clientX-lx)*.009;camTilt=Math.max(.05,Math.min(1.3,camTilt-(e.clientY-ly)*.005));lx=e.clientX;ly=e.clientY;updateCam();});
+  window.addEventListener('pointerup',()=>{drag=false;threeContainer.style.cursor='grab';});
+  window.addEventListener('resize',()=>{if(!threeContainer.clientWidth)return;camera.aspect=threeContainer.clientWidth/threeContainer.clientHeight;camera.updateProjectionMatrix();renderer.setSize(threeContainer.clientWidth,threeContainer.clientHeight);});
+  updateCam();buildModeScene();animLoop();
+}
+function updateCam(){
+  camera.position.x=Math.sin(camAngle)*camDist;
+  camera.position.z=Math.cos(camAngle)*camDist;
+  camera.position.y=2+camTilt*9;
+  camera.lookAt(0,0,0);
+}
+
+function buildDimScene(){
+  const i1=Math.round(getV('qty1')),i2=Math.round(getV('qty2'));
+  const k1=quantityKeys[Math.min(i1,quantityKeys.length-1)];
+  const k2=quantityKeys[Math.min(i2,quantityKeys.length-1)];
+  const q1=quantities[k1],q2=quantities[k2];
+  const match=dimString(q1.dim)===dimString(q2.dim);
+  const axes=['M','L','T'];
+  const colors=[0xff6b6b,0x4ecdc4,0xffd93d];
+  [-4,4].forEach((xOff,qi)=>{
+    const q=qi===0?q1:q2;
+    const col=qi===0?0x00e5ff:0x9b59b6;
+    const plateMat=new THREE.MeshStandardMaterial({color:col,metalness:.4,roughness:.5,transparent:true,opacity:.3});
+    addObj(new THREE.Mesh(new THREE.BoxGeometry(4,0.1,3),plateMat)).position.set(xOff,-3,0);
+    axes.forEach((ax,ai)=>{
+      const exp=q.dim[ax]||0;
+      const barH=Math.max(0.1,Math.abs(exp)*1.2);
+      const barY=exp>=0?-3+barH/2:-3-barH/2;
+      const barCol=exp>0?0x43aa8b:exp<0?0xf94144:0x555555;
+      const bar=addObj(new THREE.Mesh(
+        new THREE.BoxGeometry(0.9,barH,0.9),
+        new THREE.MeshStandardMaterial({color:barCol,emissive:new THREE.Color(barCol),emissiveIntensity:.4,metalness:.3,roughness:.4})
+      ));
+      bar.position.set(xOff-1.5+ai*1.5,barY,0);
+      const ringMat=new THREE.MeshBasicMaterial({color:colors[ai]});
+      const ring=addObj(new THREE.Mesh(new THREE.TorusGeometry(.5,.06,8,20),ringMat));
+      ring.position.set(xOff-1.5+ai*1.5,-3.05,0);ring.rotation.x=Math.PI/2;
+      if(exp!==0){
+        const dot=addObj(new THREE.Mesh(
+          new THREE.SphereGeometry(.18,12,10),
+          new THREE.MeshStandardMaterial({color:barCol,emissive:new THREE.Color(barCol),emissiveIntensity:.7})
+        ));
+        dot.position.set(xOff-1.5+ai*1.5,exp>0?barY+barH/2+.2:barY-barH/2-.2,0);
+      }
+    });
+    const archGeo=new THREE.TorusGeometry(2,.05,8,40,Math.PI);
+    const archMat=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:.6});
+    const arch=addObj(new THREE.Mesh(archGeo,archMat));
+    arch.position.set(xOff,.5,0);arch.rotation.z=Math.PI;
+    const lineMat=new THREE.LineBasicMaterial({color:col,transparent:true,opacity:.35});
+    const pts=[new THREE.Vector3(xOff-1.5,-3,0),new THREE.Vector3(xOff,-3,0),new THREE.Vector3(xOff+1.5,-3,0)];
+    addObj(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),lineMat));
+  });
+  const connCol=match?0x43aa8b:0xf94144;
+  const connMat=new THREE.MeshStandardMaterial({color:connCol,emissive:new THREE.Color(connCol),emissiveIntensity:.5,transparent:true,opacity:.7});
+  const conn=addObj(new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,8,12),connMat));
+  conn.rotation.z=Math.PI/2;conn.position.set(0,-3.05,0);
+  const centerSphere=addObj(new THREE.Mesh(
+    new THREE.SphereGeometry(.5,24,20),
+    new THREE.MeshStandardMaterial({color:connCol,emissive:new THREE.Color(connCol),emissiveIntensity:.8})
+  ));
+  centerSphere.position.set(0,0,0);
+  ['M','L','T'].forEach((ax,i)=>{
+    const c=[0xff6b6b,0x4ecdc4,0xffd93d][i];
+    const cyl=addObj(new THREE.Mesh(new THREE.CylinderGeometry(.15,.15,.8,12),new THREE.MeshStandardMaterial({color:c,emissive:new THREE.Color(c),emissiveIntensity:.5})));
+    cyl.position.set(-2+i*2,-3.5,2.5);
+  });
+}
+
+function buildSigScene(){
+  const val=getV('measurement'),dec=Math.round(getV('decimals'));
+  const numStr=(val/Math.pow(10,dec)).toFixed(dec);
+  const sf=countSigFigs(numStr);
+  const digits=numStr.replace('.','').split('');
+  let leadingZero=true;
+  digits.forEach((d,i)=>{
+    if(d==='.')return;
+    let isSig=true;
+    if(leadingZero&&d==='0') isSig=false;
+    else leadingZero=false;
+    const col=isSig?0x00e5ff:0x334455;
+    const emissive=isSig?new THREE.Color(0x00e5ff):new THREE.Color(0x001122);
+    const size=isSig?0.55:0.38;
+    const sphere=addObj(new THREE.Mesh(
+      new THREE.SphereGeometry(size,20,16),
+      new THREE.MeshStandardMaterial({color:col,emissive,emissiveIntensity:isSig?.5:.1,metalness:.3,roughness:.4})
+    ));
+    const xPos=(i-digits.length/2)*1.6;
+    sphere.position.set(xPos,0,0);
+    sphere.userData.isSig=isSig;sphere.userData.digit=d;sphere.userData.baseY=0;sphere.userData.phase=i*0.8;
+    if(isSig){
+      const ring=addObj(new THREE.Mesh(new THREE.TorusGeometry(size+.15,.04,8,24),
+        new THREE.MeshBasicMaterial({color:0x00e5ff,transparent:true,opacity:.7})));
+      ring.position.set(xPos,0,0);
+    }
+  });
+  if(numStr.includes('.')){
+    const dpIdx=numStr.indexOf('.');
+    const dpX=(dpIdx-digits.length/2)*1.6-0.8;
+    const dp=addObj(new THREE.Mesh(new THREE.SphereGeometry(.12,12,10),
+      new THREE.MeshStandardMaterial({color:0xf9c74f,emissive:0xf9c74f,emissiveIntensity:.9})));
+    dp.position.set(dpX,-0.55,0);
+  }
+  const arcR=1.5+sf*0.3;
+  const arcGeo=new THREE.TorusGeometry(arcR,.06,8,40,Math.PI*2*sf/10);
+  const arcMat=new THREE.MeshBasicMaterial({color:0x43aa8b});
+  const arc=addObj(new THREE.Mesh(arcGeo,arcMat));
+  arc.position.set(0,-3,0);arc.rotation.x=Math.PI/2;
+}
+
+function buildErrorScene(){
+  const a=getV('trueVal'),b=getV('measVal'),n=Math.round(getV('powN'));
+  const absErr=Math.abs(a-b);
+  const rulerLen=12;
+  const rulerMat=new THREE.MeshStandardMaterial({color:0xf9c74f,metalness:.3,roughness:.6});
+  addObj(new THREE.Mesh(new THREE.BoxGeometry(rulerLen,.3,.8),rulerMat)).position.y=-2;
+  for(let i=0;i<=20;i++){
+    const x=-rulerLen/2+i*(rulerLen/20);
+    const h=i%5===0?.8:.4;
+    addObj(new THREE.Mesh(new THREE.BoxGeometry(.06,h,.1),
+      new THREE.MeshBasicMaterial({color:0x222222}))).position.set(x,-1.65+h/2-.2,0.4);
+  }
+  const trueX=-rulerLen/2+(a/200)*rulerLen;
+  const trueMark=addObj(new THREE.Mesh(new THREE.CylinderGeometry(.08,.08,2.5,12),
+    new THREE.MeshStandardMaterial({color:0x43aa8b,emissive:0x43aa8b,emissiveIntensity:.7})));
+  trueMark.position.set(trueX,-.5,0);
+  const trueHead=addObj(new THREE.Mesh(new THREE.ConeGeometry(.2,.5,12),
+    new THREE.MeshStandardMaterial({color:0x43aa8b,emissive:0x43aa8b,emissiveIntensity:.8})));
+  trueHead.position.set(trueX,.5,0);
+  const measX=-rulerLen/2+(b/200)*rulerLen;
+  const measMark=addObj(new THREE.Mesh(new THREE.CylinderGeometry(.08,.08,2.5,12),
+    new THREE.MeshStandardMaterial({color:0xf94144,emissive:0xf94144,emissiveIntensity:.6})));
+  measMark.position.set(measX,-.5,0);
+  const measHead=addObj(new THREE.Mesh(new THREE.ConeGeometry(.2,.5,12),
+    new THREE.MeshStandardMaterial({color:0xf94144,emissive:0xf94144,emissiveIntensity:.7})));
+  measHead.position.set(measX,.5,0);
+  const errSpan=Math.abs(trueX-measX);
+  if(errSpan>.05){
+    const midX=(trueX+measX)/2;
+    const errBar=addObj(new THREE.Mesh(new THREE.BoxGeometry(errSpan,.12,.12),
+      new THREE.MeshStandardMaterial({color:0xf9c74f,emissive:0xf9c74f,emissiveIntensity:.6})));
+    errBar.position.set(midX,1.2,0);
+  }
+  for(let i=0;i<n;i++){
+    const s=addObj(new THREE.Mesh(new THREE.SphereGeometry(.4,16,14),
+      new THREE.MeshStandardMaterial({color:0x9b59b6,emissive:0x9b59b6,emissiveIntensity:.4+i*.1,metalness:.3,roughness:.4})));
+    s.position.set(5,-2+i*.9,0);
+    const errSphere=addObj(new THREE.Mesh(new THREE.SphereGeometry(.15,12,10),
+      new THREE.MeshStandardMaterial({color:0xf94144,emissive:0xf94144,emissiveIntensity:.7})));
+    errSphere.position.set(5+.5+i*.1,-2+i*.9,0);
+  }
+}
+
+function buildModeScene(){
+  clearObjs();
+  if(simMode==='dim') buildDimScene();
+  else if(simMode==='sig') buildSigScene();
+  else buildErrorScene();
+  buildReadoutCards();
+  runAnalysis();
+  updateFormulaBar();
+}
+
+function updateFormulaBar(){
+  const f={
+    dim:'[F]=[MLT⁻²] · [E]=[ML²T⁻²] · [P]=[ML⁻¹T⁻²] · Dimensions must match in any valid equation',
+    sig:'Leading zeros NOT sig · Trailing zeros after decimal ARE sig · Scientific notation removes ambiguity',
+    error:'Δx = |true−measured| · %error = (Δx/x)×100 · x=aⁿ → %Δx = n×%Δa'
+  };
+  document.getElementById('formula-bar').innerHTML=f[simMode];
+}
+
+let simRunning=false,simTime=0;
+function animLoop(ts){
+  requestAnimationFrame(animLoop);
+  if(simRunning){
+    simTime+=0.016;
+    sceneObjs.forEach(o=>{
+      if(o.userData.isSig===true){
+        o.position.y=o.userData.baseY+Math.sin(simTime*2+o.userData.phase)*.15;
+      }
+      if(o.userData.isSig===false){
+        o.rotation.y+=0.01;
+      }
+    });
+  }
+  if(renderer&&scene&&camera) renderer.render(scene,camera);
+}
+
+function resetSim(){
+  simRunning=false;simTime=0;
+  document.getElementById('play-btn').textContent='▶ Analyse';
+  if(scene){clearObjs();buildModeScene();}
+}
+document.getElementById('play-btn').addEventListener('click',()=>{
+  simRunning=!simRunning;
+  document.getElementById('play-btn').textContent=simRunning?'⏸ Pause':'▶ Analyse';
+  if(simRunning){score+=2;updateStats();}
+});
+document.getElementById('reset-btn').addEventListener('click',resetSim);
+['dim','sig','error'].forEach(m=>{
+  document.getElementById('btn-'+m).addEventListener('click',()=>{
+    simMode=m;
+    document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('btn-'+m).classList.add('active');
+    buildControls();resetSim();
+  });
+});
+buildControls();
+
+let threeReady=false;
+function ensureThree(){if(threeReady)return;const w=threeContainer.clientWidth||threeContainer.offsetWidth;if(w===0){setTimeout(ensureThree,150);return;}threeReady=true;initThree();resetSim();}
+document.querySelector('.tab[data-tab="sim"]').addEventListener('click',()=>setTimeout(ensureThree,150));
+setTimeout(ensureThree,500);
+
+const pairs=[
+  {term:'[MLT⁻²]',def:'Dimensional formula of Force'},
+  {term:'Significant Figures',def:'Reliably known digits in a measurement'},
+  {term:'Absolute Error',def:'|True − Measured| value'},
+  {term:'Parallax Method',def:'Used to measure star distances'},
+  {term:'Least Count',def:'Smallest measurable value of instrument'},
+  {term:'Dimensional Analysis',def:'Checking equation by comparing dimensions'}
+];
+let matchSelected=null,matchedCount=0;
+function shuffle(a){return a.sort(()=>Math.random()-0.5);}
+function renderMatch(){
+  matchedCount=0;matchSelected=null;
+  const grid=document.getElementById('match-grid');
+  const items=[];
+  pairs.forEach((p,i)=>{items.push({type:'term',text:p.term,id:i});items.push({type:'def',text:p.def,id:i});});
+  shuffle(items);
+  grid.innerHTML=items.map(it=>`<div class="match-card" data-type="${it.type}" data-id="${it.id}">${it.text}</div>`).join('');
+  grid.querySelectorAll('.match-card').forEach(c=>c.addEventListener('click',()=>handleMatch(c)));
+}
+function handleMatch(card){
+  if(card.classList.contains('matched'))return;
+  if(matchSelected===card){card.classList.remove('selected');matchSelected=null;return;}
+  if(!matchSelected){card.classList.add('selected');matchSelected=card;return;}
+  if(card.dataset.id===matchSelected.dataset.id&&card.dataset.type!==matchSelected.dataset.type){
+    card.classList.add('matched');matchSelected.classList.add('matched');
+    matchSelected.classList.remove('selected');matchSelected=null;
+    matchedCount++;score+=8;streak++;updateStats();
+    if(matchedCount===pairs.length){setTimeout(()=>showWin('All matched! +20 bonus 🎯'),400);score+=20;updateStats();}
+  }else{
+    card.classList.add('wrong');matchSelected.classList.add('wrong');
+    streak=0;updateStats();
+    const prev=matchSelected;
+    setTimeout(()=>{card.classList.remove('wrong','selected');prev.classList.remove('wrong','selected');},600);
+    matchSelected=null;
+  }
+}
+document.getElementById('match-reset').addEventListener('click',renderMatch);
+renderMatch();
+</script>
+</body>
+</html>

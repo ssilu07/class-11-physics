@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thermal Rush — Thermal Properties of Matter</title>
+<link href="https://fonts.googleapis.com/css2?family=Righteous&family=Share+Tech+Mono&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="three.min.js"></script>
+<style>
+  :root{
+    --bg:#0f0200;--bg2:#1a0500;
+    --hot:#ff4500;--warm:#ff8c00;
+    --cool:#00bfff;--cold:#0044ff;
+    --gold:#ffd700;--green:#39ff14;
+    --text:#fff5e6;--muted:#6b4a30;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{overflow-x:hidden}
+  body{
+    font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;
+    background-image:
+      radial-gradient(circle at 20% 25%,rgba(255,69,0,.16),transparent 45%),
+      radial-gradient(circle at 80% 75%,rgba(0,191,255,.1),transparent 45%),
+      radial-gradient(circle at 50% 50%,rgba(255,140,0,.08),transparent 50%);
+    padding:20px 16px 60px;
+  }
+  body::before{content:'';position:fixed;inset:0;
+    background-image:linear-gradient(rgba(255,69,0,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,69,0,.03) 1px,transparent 1px);
+    background-size:44px 44px;pointer-events:none;z-index:0;}
+  .container{position:relative;z-index:1;max-width:900px;margin:0 auto}
+  header{text-align:center;margin-bottom:28px;padding:20px 0}
+  .title{
+    font-family:'Righteous',cursive;
+    font-size:clamp(2rem,7vw,3.8rem);line-height:1;letter-spacing:3px;
+    background:linear-gradient(135deg,var(--cold),var(--cool),var(--warm),var(--hot));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 30px rgba(255,69,0,.5));
+  }
+  .subtitle{font-family:'Share Tech Mono',monospace;color:var(--warm);font-size:.82rem;margin-top:8px;letter-spacing:3px;text-transform:uppercase}
+  .stats{display:flex;justify-content:center;gap:14px;margin-top:16px;flex-wrap:wrap}
+  .stat{background:rgba(255,255,255,.05);border:1px solid rgba(255,140,0,.2);border-radius:12px;padding:8px 16px;font-family:'Share Tech Mono',monospace;font-size:.8rem}
+  .stat strong{color:var(--gold);font-size:1rem}
+  .tabs{display:flex;gap:8px;margin-bottom:22px;background:rgba(255,255,255,.04);padding:6px;border-radius:16px;border:1px solid rgba(255,255,255,.07);overflow-x:auto}
+  .tab{flex:1;min-width:fit-content;padding:11px 14px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;font-size:.9rem;border-radius:10px;transition:all .25s;white-space:nowrap}
+  .tab.active{background:linear-gradient(135deg,var(--hot),var(--warm));color:#0f0200;box-shadow:0 4px 18px rgba(255,69,0,.4)}
+  .panel{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:22px;padding:22px;backdrop-filter:blur(10px);display:none;animation:fadeIn .4s ease}
+  .panel.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .panel h2{font-family:'Righteous',cursive;font-size:1.6rem;margin-bottom:6px;color:var(--gold);letter-spacing:2px}
+  .panel-sub{color:var(--muted);font-size:.88rem;margin-bottom:18px}
+  .question-box{background:linear-gradient(135deg,rgba(255,69,0,.09),rgba(0,191,255,.05));border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:18px;margin-bottom:14px}
+  .q-text{font-size:1.02rem;font-weight:600;line-height:1.5;margin-bottom:5px}
+  .q-meta{font-family:'Share Tech Mono',monospace;font-size:.72rem;color:var(--warm);letter-spacing:1px}
+  .options{display:grid;gap:9px}
+  .option{background:rgba(255,255,255,.05);border:2px solid rgba(255,255,255,.09);color:var(--text);padding:13px 16px;border-radius:11px;text-align:left;cursor:pointer;font-family:'Nunito',sans-serif;font-size:.93rem;transition:all .2s}
+  .option:hover{background:rgba(255,140,0,.08);border-color:var(--warm);transform:translateX(4px)}
+  .option.correct{background:rgba(57,255,20,.13);border-color:var(--green);color:var(--green)}
+  .option.wrong{background:rgba(255,69,0,.13);border-color:var(--hot);color:var(--hot)}
+  .option:disabled{cursor:not-allowed}
+  .feedback{margin-top:12px;padding:13px;border-radius:11px;font-size:.88rem;line-height:1.5;display:none}
+  .feedback.show{display:block;animation:fadeIn .3s}
+  .feedback.correct{background:rgba(57,255,20,.08);border-left:4px solid var(--green)}
+  .feedback.wrong{background:rgba(255,69,0,.08);border-left:4px solid var(--hot)}
+  .next-btn{margin-top:12px;width:100%;padding:13px;border:none;border-radius:11px;background:linear-gradient(135deg,var(--hot),var(--warm));color:#0f0200;font-weight:800;font-size:.97rem;cursor:pointer;font-family:'Righteous',cursive;letter-spacing:2px;display:none}
+  .next-btn.show{display:block}
+  .flash-stage{perspective:1200px;margin:10px 0 16px}
+  .flash-card{position:relative;width:100%;height:270px;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.4,0,.2,1);cursor:pointer}
+  .flash-card.flipped{transform:rotateY(180deg)}
+  .flash-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:18px;padding:22px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;border:1px solid rgba(255,255,255,.12)}
+  .flash-front{background:linear-gradient(135deg,rgba(255,69,0,.2),rgba(255,215,0,.12));box-shadow:0 18px 50px rgba(255,69,0,.18)}
+  .flash-back{background:linear-gradient(135deg,rgba(0,191,255,.18),rgba(57,255,20,.1));transform:rotateY(180deg);box-shadow:0 18px 50px rgba(0,191,255,.15)}
+  .flash-label{font-family:'Share Tech Mono',monospace;font-size:.68rem;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:12px;opacity:.9}
+  .flash-back .flash-label{color:var(--cool)}
+  .flash-term{font-family:'Righteous',cursive;font-size:clamp(1.3rem,4.5vw,1.9rem);line-height:1.1;background:linear-gradient(135deg,#fff,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:8px}
+  .flash-formula{font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--cool);background:rgba(0,0,0,.35);padding:7px 13px;border-radius:7px;margin-top:7px}
+  .flash-def{font-size:.96rem;line-height:1.55;color:var(--text);max-width:92%}
+  .flash-example{margin-top:12px;font-size:.8rem;color:var(--muted);font-style:italic;line-height:1.4}
+  .flash-tap{position:absolute;bottom:12px;font-size:.68rem;color:var(--muted);font-family:'Share Tech Mono',monospace;letter-spacing:1px}
+  .flash-nav{display:flex;gap:10px;align-items:center;justify-content:space-between}
+  .flash-arrow{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);color:var(--text);width:46px;height:46px;border-radius:50%;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+  .flash-arrow:hover{background:var(--gold);color:#0f0200;transform:scale(1.05)}
+  .flash-arrow:disabled{opacity:.3;cursor:not-allowed}
+  .flash-progress{flex:1;background:rgba(255,255,255,.06);height:5px;border-radius:3px;overflow:hidden}
+  .flash-progress-bar{height:100%;background:linear-gradient(90deg,var(--hot),var(--warm));transition:width .3s}
+  .flash-counter{font-family:'Share Tech Mono',monospace;font-size:.77rem;color:var(--muted);text-align:center;margin-top:9px}
+  .flash-mark{margin-top:13px;display:flex;gap:8px}
+  .mark-btn{flex:1;padding:10px;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:700;font-size:.83rem;cursor:pointer;transition:transform .15s}
+  .mark-btn:active{transform:scale(.96)}
+  .mark-known{background:rgba(57,255,20,.12);color:var(--green);border:1px solid var(--green)}
+  .mark-review{background:rgba(255,69,0,.12);color:var(--hot);border:1px solid var(--hot)}
+  .sim-mode-toggle{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap}
+  .mode-btn{flex:1;min-width:fit-content;padding:9px 12px;border:2px solid rgba(255,255,255,.1);border-radius:10px;background:transparent;color:var(--muted);cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;font-size:.85rem;transition:all .2s;white-space:nowrap}
+  .mode-btn.active{border-color:var(--warm);color:var(--warm);background:rgba(255,140,0,.1)}
+  .sim-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+  .control{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);padding:11px;border-radius:11px}
+  .control label{display:block;font-family:'Share Tech Mono',monospace;font-size:.68rem;color:var(--warm);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
+  .control input[type=range]{width:100%;accent-color:var(--gold)}
+  .control .val{font-family:'Righteous',cursive;color:var(--gold);font-size:1.05rem}
+  #three-container canvas{display:block}
+  .sim-buttons{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+  .sim-btn{flex:1;min-width:90px;padding:11px;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:700;cursor:pointer;transition:transform .15s}
+  .sim-btn:active{transform:scale(.96)}
+  .btn-play{background:var(--hot);color:#0f0200}
+  .btn-reset{background:rgba(255,255,255,.09);color:var(--text)}
+  .readout{margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:7px}
+  .read-card{background:rgba(255,69,0,.07);border:1px solid rgba(255,140,0,.2);border-radius:10px;padding:9px;text-align:center}
+  .read-card .lbl{font-size:.67rem;color:var(--warm);font-family:'Share Tech Mono',monospace}
+  .read-card .num{font-family:'Righteous',cursive;font-size:.95rem;color:var(--text)}
+  /* Temp colour strip */
+  .temp-strip{margin-top:10px;height:14px;border-radius:7px;background:linear-gradient(90deg,var(--cold),var(--cool),#00ff88,var(--warm),var(--hot));position:relative;border:1px solid rgba(255,255,255,.12)}
+  .temp-cursor{position:absolute;top:-5px;width:6px;height:24px;background:#fff;border-radius:3px;transform:translateX(-50%);transition:left .3s}
+  .match-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .match-card{background:rgba(255,255,255,.05);border:2px solid rgba(255,255,255,.09);padding:13px;border-radius:11px;cursor:pointer;font-size:.83rem;text-align:center;min-height:66px;display:flex;align-items:center;justify-content:center;transition:all .2s}
+  .match-card:hover{border-color:var(--warm)}
+  .match-card.selected{border-color:var(--gold);background:rgba(255,215,0,.12)}
+  .match-card.matched{background:rgba(57,255,20,.12);border-color:var(--green);color:var(--green);cursor:default;opacity:.75}
+  .match-card.wrong{background:rgba(255,69,0,.12);border-color:var(--hot);animation:shake .3s}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+  .reset-link{display:block;text-align:center;margin-top:16px;color:var(--muted);font-size:.83rem;cursor:pointer;text-decoration:underline;background:none;border:none;width:100%}
+  .win-overlay{position:fixed;inset:0;background:rgba(15,2,0,.95);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+  .win-overlay.show{display:flex;animation:fadeIn .4s}
+  .win-card{background:linear-gradient(135deg,var(--hot),var(--gold));color:#0f0200;padding:28px;border-radius:18px;text-align:center;max-width:320px}
+  .win-card h2{font-family:'Righteous',cursive;font-size:2.2rem;margin-bottom:8px;letter-spacing:2px}
+  .win-card button{margin-top:14px;padding:11px 26px;border:none;border-radius:10px;background:#0f0200;color:var(--gold);font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1 class="title">THERMAL RUSH</h1>
+    <div class="subtitle">// Class 11 Physics · Thermal Properties of Matter</div>
+    <div class="stats">
+      <div class="stat">SCORE <strong id="score">0</strong></div>
+      <div class="stat">STREAK <strong id="streak">0</strong>🔥</div>
+      <div class="stat">LEVEL <strong id="level">1</strong></div>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="quiz">🧠 Quiz</button>
+    <button class="tab" data-tab="flash">🎴 Cards</button>
+    <button class="tab" data-tab="sim">🌡️ Thermal Lab</button>
+    <button class="tab" data-tab="match">🔗 Match</button>
+  </div>
+
+  <!-- QUIZ -->
+  <section class="panel active" id="quiz">
+    <h2>BRAIN BOOST</h2>
+    <p class="panel-sub">Test your thermal knowledge — +10 per correct answer!</p>
+    <div id="quiz-box"></div>
+  </section>
+
+  <!-- FLASHCARDS -->
+  <section class="panel" id="flash">
+    <h2>FLASH CARDS</h2>
+    <p class="panel-sub">Tap to flip. Definitions, formulas and examples all in one place.</p>
+    <div class="flash-stage">
+      <div class="flash-card" id="flash-card">
+        <div class="flash-face flash-front">
+          <div class="flash-label">CONCEPT</div>
+          <div class="flash-term" id="f-term">Loading…</div>
+          <div class="flash-tap">tap to flip ↻</div>
+        </div>
+        <div class="flash-face flash-back">
+          <div class="flash-label">EXPLANATION</div>
+          <div class="flash-def" id="f-def"></div>
+          <div class="flash-formula" id="f-formula"></div>
+          <div class="flash-example" id="f-example"></div>
+          <div class="flash-tap">tap to flip back ↺</div>
+        </div>
+      </div>
+    </div>
+    <div class="flash-nav">
+      <button class="flash-arrow" id="f-prev">←</button>
+      <div class="flash-progress"><div class="flash-progress-bar" id="f-bar"></div></div>
+      <button class="flash-arrow" id="f-next">→</button>
+    </div>
+    <div class="flash-counter" id="f-counter">1 / 12</div>
+    <div class="flash-mark">
+      <button class="mark-btn mark-review" id="f-review">🔁 Need Review</button>
+      <button class="mark-btn mark-known" id="f-known">✓ Got It (+5)</button>
+    </div>
+  </section>
+
+  <!-- SIMULATION -->
+  <section class="panel" id="sim">
+    <h2>THERMAL LAB — 3D</h2>
+    <p class="panel-sub">Three modes: Expansion, Heat Transfer (Conduction/Convection/Radiation), Phase Change. <span style="color:var(--gold)">Drag to rotate</span></p>
+    <div class="sim-mode-toggle">
+      <button class="mode-btn active" id="btn-expansion">🔩 Expansion</button>
+      <button class="mode-btn" id="btn-transfer">🔥 Heat Transfer</button>
+      <button class="mode-btn" id="btn-phase">💧 Phase Change</button>
+    </div>
+    <div class="sim-controls" id="sim-controls"></div>
+    <div id="three-container" style="width:100%;height:400px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,140,0,.2);background:radial-gradient(ellipse at 50% 30%,#1a0500 0%,#0f0200 100%);position:relative;cursor:grab;touch-action:none"></div>
+    <div class="sim-buttons">
+      <button class="sim-btn btn-play" id="play-btn">▶ Heat Up</button>
+      <button class="sim-btn btn-reset" id="reset-btn">↺ Reset</button>
+    </div>
+    <div class="temp-strip"><div class="temp-cursor" id="temp-cursor" style="left:50%"></div></div>
+    <div class="readout" id="readout-grid"></div>
+    <p style="margin-top:10px;font-size:.77rem;color:var(--muted);text-align:center;font-family:'Share Tech Mono',monospace" id="formula-bar">
+      ΔL = αL₀ΔT &nbsp;|&nbsp; Q = mcΔT &nbsp;|&nbsp; H = kA(T₁−T₂)/d
+    </p>
+  </section>
+
+  <!-- MATCH -->
+  <section class="panel" id="match">
+    <h2>CONCEPT MATCH</h2>
+    <p class="panel-sub">Match each term with its correct meaning</p>
+    <div class="match-grid" id="match-grid"></div>
+    <button class="reset-link" id="match-reset">↺ Restart match game</button>
+  </section>
+</div>
+
+<div class="win-overlay" id="win">
+  <div class="win-card">
+    <h2>🔥 LEVEL UP!</h2>
+    <p id="win-msg">You're on fire!</p>
+    <button onclick="document.getElementById('win').classList.remove('show')">Continue</button>
+  </div>
+</div>
+
+<script>
+// ── GLOBALS ─────────────────────────────────────────
+let score=0,streak=0,level=1;
+function updateStats(){
+  document.getElementById('score').textContent=score;
+  document.getElementById('streak').textContent=streak;
+  document.getElementById('level').textContent=level;
+  const nl=Math.floor(score/50)+1;
+  if(nl>level){level=nl;showWin('Level '+nl+' unlocked! 🔥');}
+}
+function showWin(msg){document.getElementById('win-msg').textContent=msg;document.getElementById('win').classList.add('show');}
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');document.getElementById(t.dataset.tab).classList.add('active');
+  });
+});
+
+// ── QUIZ ────────────────────────────────────────────
+const questions=[
+  {q:'The formula for linear thermal expansion is:',
+   opts:['ΔL = αL₀/ΔT','ΔL = αL₀ΔT','ΔL = L₀/αΔT','ΔL = α²L₀ΔT'],correct:1,
+   explain:'ΔL = αL₀ΔT. α = coefficient of linear expansion, L₀ = original length, ΔT = temperature change.'},
+  {q:'Heat required to change the temperature of a body is given by:',
+   opts:['Q = mΔT','Q = mcΔT','Q = mc/ΔT','Q = c/mΔT'],correct:1,
+   explain:'Q = mcΔT. m = mass, c = specific heat capacity, ΔT = temperature change. Unit of Q: Joule.'},
+  {q:'Latent heat is the heat required to:',
+   opts:['Raise temperature by 1°C','Change state at constant temperature','Increase pressure','Reduce volume'],correct:1,
+   explain:'Latent heat: heat absorbed or released during phase change (solid↔liquid↔gas) at constant temperature. No temperature change occurs.'},
+  {q:'Which mode of heat transfer does NOT require a medium?',
+   opts:['Conduction','Convection','Radiation','All require a medium'],correct:2,
+   explain:'Radiation travels as electromagnetic waves — it works in vacuum. That is how the Sun heats Earth across empty space.'},
+  {q:'Newton\'s Law of Cooling states that the rate of cooling is proportional to:',
+   opts:['Absolute temperature','Temperature difference with surroundings','Mass of object','Specific heat'],correct:1,
+   explain:'dT/dt = −k(T − T_surroundings). The greater the temperature difference, the faster the object cools.'},
+  {q:'The specific heat of water is approximately:',
+   opts:['420 J/kg·K','4200 J/kg·K','42 J/kg·K','42000 J/kg·K'],correct:1,
+   explain:'c_water ≈ 4186 J/kg·K — one of the highest of any common substance. This makes water an excellent coolant.'},
+  {q:'If a steel rod (α = 12×10⁻⁶/°C) of length 2 m is heated by 50°C, its expansion is:',
+   opts:['0.6 mm','1.2 mm','2.4 mm','0.12 mm'],correct:1,
+   explain:'ΔL = αL₀ΔT = 12×10⁻⁶ × 2 × 50 = 0.0012 m = 1.2 mm.'},
+  {q:'Thermal conductivity (k) measures:',
+   opts:['Rate of radiation emitted','Ability to conduct heat through a material','Specific heat capacity','Rate of evaporation'],correct:1,
+   explain:'k (W/m·K) measures how well a material conducts heat. Metals have high k (Cu≈400), insulators have low k (wood≈0.1).'},
+  {q:'Triple point of water is the condition where:',
+   opts:['Water boils at 100°C','All three phases coexist in equilibrium','Ice melts at 0°C','Steam condenses'],correct:1,
+   explain:'Triple point of water: T = 273.16 K, P = 611.73 Pa. At this unique point, solid, liquid and gas all coexist in equilibrium.'},
+  {q:'Anomalous expansion of water occurs between:',
+   opts:['0°C and 4°C','4°C and 100°C','−10°C and 0°C','100°C and 110°C'],correct:0,
+   explain:'Water contracts from 0°C to 4°C (unusual!) then expands above 4°C. Water is densest at 4°C. This is why fish survive in frozen lakes.'}
+];
+let qIdx=0;
+function renderQuestion(){
+  if(qIdx>=questions.length)qIdx=0;
+  const q=questions[qIdx];
+  document.getElementById('quiz-box').innerHTML=`
+    <div class="question-box">
+      <div class="q-meta">QUESTION ${qIdx+1} / ${questions.length}</div>
+      <div class="q-text">${q.q}</div>
+    </div>
+    <div class="options">${q.opts.map((o,i)=>`<button class="option" data-i="${i}">${String.fromCharCode(65+i)}. ${o}</button>`).join('')}</div>
+    <div class="feedback" id="fb"></div>
+    <button class="next-btn" id="next">Next Question →</button>`;
+  document.querySelectorAll('.option').forEach(b=>b.addEventListener('click',()=>handleAnswer(b)));
+  document.getElementById('next').addEventListener('click',()=>{qIdx++;renderQuestion();});
+}
+function handleAnswer(btn){
+  const i=parseInt(btn.dataset.i),q=questions[qIdx],fb=document.getElementById('fb');
+  document.querySelectorAll('.option').forEach(b=>b.disabled=true);
+  if(i===q.correct){
+    btn.classList.add('correct');fb.classList.add('show','correct');
+    fb.innerHTML=`✅ <strong>Correct!</strong> ${q.explain}`;
+    score+=10;streak++;if(streak%3===0&&streak>0)score+=5;
+  }else{
+    btn.classList.add('wrong');
+    document.querySelectorAll('.option')[q.correct].classList.add('correct');
+    fb.classList.add('show','wrong');
+    fb.innerHTML=`❌ <strong>Incorrect.</strong> ${q.explain}`;streak=0;
+  }
+  updateStats();document.getElementById('next').classList.add('show');
+}
+renderQuestion();
+
+// ── FLASHCARDS ──────────────────────────────────────
+const flashcards=[
+  {term:'Temperature',def:'A measure of the average kinetic energy of molecules in a substance. NOT the same as heat. Measured in Celsius, Kelvin, or Fahrenheit.',formula:'T(K) = T(°C) + 273.15',example:'Body temp 37°C = 310.15 K. Absolute zero = 0 K = −273.15°C'},
+  {term:'Heat (Q)',def:'Energy transferred between objects due to a temperature difference. Heat flows from hot to cold until thermal equilibrium is reached.',formula:'Q = mcΔT  (Unit: Joule)',example:'Heating 1 kg water from 20°C to 100°C: Q = 1×4186×80 = 334,880 J'},
+  {term:'Specific Heat Capacity',def:'Heat required to raise the temperature of 1 kg of a substance by 1 K (or 1°C). An intrinsic property of the material.',formula:'c = Q/(mΔT)  Unit: J/kg·K',example:'Water: 4186, Iron: 450, Copper: 385, Aluminium: 900 J/kg·K'},
+  {term:'Thermal Expansion',def:'Most materials expand when heated because molecules vibrate more and occupy more space. Solids expand least, gases most.',formula:'ΔL=αL₀ΔT, ΔA=2αA₀ΔT, ΔV=3αV₀ΔT',example:'Railway tracks have gaps between sections to allow for summer expansion'},
+  {term:'Latent Heat',def:'Heat absorbed or released during a phase change at constant temperature. "Latent" means hidden — no temperature rise occurs.',formula:'Q = mL  (L in J/kg)',example:'Ice→water: L_f=334,000 J/kg. Water→steam: L_v=2,260,000 J/kg'},
+  {term:'Conduction',def:'Heat transfer through direct molecular contact. Molecules vibrate and pass energy to neighbours. Requires material medium.',formula:'H = kA(T₁−T₂)/d  (W)',example:'Metal spoon in hot tea becomes hot. Insulation in walls reduces conduction.'},
+  {term:'Convection',def:'Heat transfer through the bulk movement of a fluid (liquid or gas). Hot fluid rises, cool fluid sinks, creating convection currents.',formula:'H = hA(T_surface − T_fluid)',example:'Sea breeze, room heaters, ocean currents, boiling water'},
+  {term:'Radiation',def:'Heat transfer via electromagnetic waves (infrared). Does not require any medium. All objects emit radiation; hotter objects emit more.',formula:'P = εσAT⁴  (Stefan-Boltzmann)',example:'Sun heats Earth 150 million km away through vacuum. Sitting near a fire.'},
+  {term:"Newton's Law of Cooling",def:'The rate of heat loss is proportional to the excess temperature over surroundings, provided the difference is small.',formula:'dT/dt = −k(T − T_s)',example:'Coffee cools faster when very hot, slower as it approaches room temperature'},
+  {term:'Phase Diagram',def:'A graph showing the states (solid/liquid/gas) of a substance at different temperatures and pressures. Shows phase boundaries and triple point.',formula:'Axes: Temperature vs Pressure',example:'Water has unusual properties — ice is less dense than liquid water'},
+  {term:'Triple Point',def:'The unique combination of temperature and pressure at which all three phases (solid, liquid, gas) of a substance coexist in equilibrium.',formula:'Water: 273.16 K, 611.73 Pa',example:'Used as a fixed reference point for the Kelvin temperature scale'},
+  {term:'Anomalous Expansion',def:'Water CONTRACTS from 0°C to 4°C (unlike most substances which expand on heating). Water is densest at 4°C.',formula:'ρ_max at 4°C = 1000 kg/m³',example:'Lakes freeze from top down — fish survive in 4°C water beneath ice'}
+];
+let fIdx=0,fKnown=new Set();
+function renderFlash(){
+  const c=flashcards[fIdx];
+  document.getElementById('f-term').textContent=c.term;
+  document.getElementById('f-def').textContent=c.def;
+  document.getElementById('f-formula').textContent=c.formula;
+  document.getElementById('f-example').textContent='📌 '+c.example;
+  document.getElementById('flash-card').classList.remove('flipped');
+  document.getElementById('f-counter').textContent=`${fIdx+1} / ${flashcards.length}`;
+  document.getElementById('f-bar').style.width=`${((fIdx+1)/flashcards.length)*100}%`;
+  document.getElementById('f-prev').disabled=fIdx===0;
+  document.getElementById('f-next').disabled=fIdx===flashcards.length-1;
+}
+document.getElementById('flash-card').addEventListener('click',e=>e.currentTarget.classList.toggle('flipped'));
+document.getElementById('f-prev').addEventListener('click',e=>{e.stopPropagation();if(fIdx>0){fIdx--;renderFlash();}});
+document.getElementById('f-next').addEventListener('click',e=>{e.stopPropagation();if(fIdx<flashcards.length-1){fIdx++;renderFlash();}});
+document.getElementById('f-known').addEventListener('click',e=>{
+  e.stopPropagation();
+  if(!fKnown.has(fIdx)){fKnown.add(fIdx);score+=5;streak++;updateStats();
+    if(fKnown.size===flashcards.length){showWin('All cards mastered! 🏆 +25 bonus');score+=25;updateStats();}}
+  if(fIdx<flashcards.length-1){fIdx++;renderFlash();}
+});
+document.getElementById('f-review').addEventListener('click',e=>{
+  e.stopPropagation();
+  if(fIdx<flashcards.length-1){fIdx++;renderFlash();}else{fIdx=0;renderFlash();}
+});
+renderFlash();
+
+// ── 3D THERMAL SIMULATION ────────────────────────────
+const threeContainer=document.getElementById('three-container');
+let scene,camera,renderer;
+let camAngle=0.45,camTilt=0.38,camDist=15;
+let simMode='expansion';
+let simRunning=false,simTime=0;
+let sceneObjs=[];
+let currentTemp=20; // °C, the live temperature being animated
+
+// Track everything for clean clearing
+function addObj(o){scene.add(o);sceneObjs.push(o);return o;}
+function clearObjs(){sceneObjs.forEach(o=>scene.remove(o));sceneObjs=[];}
+
+// Colour helper: blue(cold) → orange → red(hot)
+function tempColor(t,tMin=0,tMax=500){
+  const n=Math.max(0,Math.min(1,(t-tMin)/(tMax-tMin)));
+  const r=n,g=Math.max(0,0.5-Math.abs(n-0.5)),b=1-n;
+  return new THREE.Color(r,g,b);
+}
+
+// ── Mode configs ──
+const modeConfigs={
+  expansion:[
+    {id:'mat',label:'Material α (×10⁻⁶)',min:1,max:24,val:12,step:1,unit:'/°C',
+     hint:'Steel≈12, Al≈23, Cu≈17, Glass≈9'},
+    {id:'L0',label:'Original Length',min:0.5,max:5,val:2,step:0.1,unit:'m'},
+    {id:'dT',label:'Temp Rise ΔT',min:0,max:500,val:100,step:5,unit:'°C'}
+  ],
+  transfer:[
+    {id:'T_hot',label:'Hot Side Temp',min:100,max:800,val:400,step:10,unit:'°C'},
+    {id:'T_cold',label:'Cold Side Temp',min:0,max:100,val:20,step:5,unit:'°C'},
+    {id:'k_mat',label:'Conductivity k',min:1,max:400,val:50,step:1,unit:'W/m·K'}
+  ],
+  phase:[
+    {id:'substance',label:'Substance',min:0,max:2,val:0,step:1,unit:'',
+     labels:['Water','Ethanol','Iron']},
+    {id:'heatRate',label:'Heat Rate',min:1,max:10,val:5,step:1,unit:'kJ/s'}
+  ]
+};
+
+function getV(id){return parseFloat(document.getElementById(id)?.value??0);}
+
+function buildControls(){
+  const cfg=modeConfigs[simMode];
+  document.getElementById('sim-controls').innerHTML=cfg.map(c=>`
+    <div class="control">
+      <label>${c.label}${c.hint?'<br><span style="color:var(--muted);font-size:.6rem;font-family:Share Tech Mono,monospace">'+c.hint+'</span>':''}</label>
+      <input type="range" id="${c.id}" min="${c.min}" max="${c.max}" value="${c.val}" step="${c.step}">
+      <div><span class="val" id="${c.id}-val">${c.labels?c.labels[c.val]:c.val}</span><span style="color:var(--muted);font-size:.75rem"> ${c.unit}</span></div>
+    </div>`).join('');
+  cfg.forEach(c=>{
+    const el=document.getElementById(c.id);
+    if(!el)return;
+    el.addEventListener('input',e=>{
+      const v=parseFloat(e.target.value);
+      document.getElementById(c.id+'-val').textContent=c.labels?c.labels[v]:v;
+      // Reset phase heat when substance changes, stop sim to prevent flicker
+      if(c.id==='substance'){phaseHeat=0;}
+      simRunning=false;document.getElementById('play-btn').textContent='▶ Heat Up';
+      if(threeReady){clearObjs();buildModeScene();updateReadout();}
+    });
+  });
+}
+
+// ── Readout definitions ──
+const readoutDefs={
+  expansion:[
+    {id:'r-dL',lbl:'Extension ΔL'},
+    {id:'r-dA',lbl:'Area Expansion ΔA'},
+    {id:'r-dV',lbl:'Vol Expansion ΔV'},
+    {id:'r-strain',lbl:'Thermal Strain'}
+  ],
+  transfer:[
+    {id:'r-H',lbl:'Heat Flow Rate'},
+    {id:'r-dT',lbl:'Temp Gradient'},
+    {id:'r-Q1s',lbl:'Heat/second'},
+    {id:'r-mode',lbl:'Mode'}
+  ],
+  phase:[
+    {id:'r-phase',lbl:'Current Phase'},
+    {id:'r-temp',lbl:'Temperature'},
+    {id:'r-Q',lbl:'Heat Added'},
+    {id:'r-latent',lbl:'Latent Heat'}
+  ]
+};
+
+function buildReadoutCards(){
+  document.getElementById('readout-grid').innerHTML=
+    readoutDefs[simMode].map(r=>`
+      <div class="read-card"><div class="lbl">${r.lbl}</div><div class="num" id="${r.id}">—</div></div>`).join('');
+}
+
+function updateTempStrip(t,tMin,tMax){
+  const pct=Math.max(0,Math.min(100,(t-tMin)/(tMax-tMin)*100));
+  document.getElementById('temp-cursor').style.left=pct+'%';
+}
+
+function updateReadout(){
+  if(simMode==='expansion'){
+    const alpha=getV('mat')*1e-6;
+    const L0=getV('L0'),dT=getV('dT');
+    const dL=alpha*L0*dT;
+    const dA=2*alpha*(L0*L0)*dT;
+    const dV=3*alpha*(L0*L0*L0)*dT;
+    document.getElementById('r-dL').textContent=(dL*1000).toFixed(3)+' mm';
+    document.getElementById('r-dA').textContent=(dA*1e4).toFixed(3)+' cm²';
+    document.getElementById('r-dV').textContent=(dV*1e6).toFixed(3)+' cm³';
+    document.getElementById('r-strain').textContent=(alpha*dT*1e6).toFixed(2)+' μm/m';
+    updateTempStrip(dT,0,500);
+  }
+  else if(simMode==='transfer'){
+    const Th=getV('T_hot'),Tc=getV('T_cold'),k=getV('k_mat');
+    const A=1,d=1;
+    const H=k*A*(Th-Tc)/d;
+    const grad=(Th-Tc)/d;
+    document.getElementById('r-H').textContent=H.toFixed(1)+' W';
+    document.getElementById('r-dT').textContent=grad.toFixed(1)+' °C/m';
+    document.getElementById('r-Q1s').textContent=H.toFixed(1)+' J/s';
+    document.getElementById('r-mode').textContent='Conduction';
+    updateTempStrip((Th+Tc)/2,0,800);
+  }
+  else{
+    const substances=[
+      {name:'Water',  Tf:0,  Tb:100, Lf:334000, Lv:2260000, c_s:2090,c_l:4186,c_g:2010},
+      {name:'Ethanol',Tf:-114,Tb:78, Lf:108000, Lv:841000,  c_s:1100,c_l:2440,c_g:1420},
+      {name:'Iron',   Tf:1538,Tb:2861,Lf:247000,Lv:6340000, c_s:450, c_l:550, c_g:750}
+    ];
+    const s=substances[Math.round(getV('substance'))];
+    const Qadd=phaseHeat;
+    const {phase,temp}=getPhaseAndTemp(s,Qadd);
+    document.getElementById('r-phase').textContent=phase;
+    document.getElementById('r-temp').textContent=temp.toFixed(1)+' °C';
+    document.getElementById('r-Q').textContent=(Qadd/1000).toFixed(1)+' kJ/kg';
+    document.getElementById('r-latent').textContent=(s.Lf/1000).toFixed(0)+' kJ/kg (fusion)';
+    updateTempStrip(temp,s.Tf-50,s.Tb+100);
+  }
+}
+
+// Phase change: compute phase and temperature from heat added per kg
+function getPhaseAndTemp(s,Q){
+  const {Tf,Tb,Lf,Lv,c_s,c_l,c_g}=s;
+  const T_start=Tf-100;
+  // Heating stages: solid → melt → liquid → boil → gas
+  const Q1=(Tf-T_start)*c_s;     // heat solid to melt point
+  const Q2=Q1+Lf;                // melt at Tf
+  const Q3=Q2+(Tb-Tf)*c_l;       // heat liquid to boil point
+  const Q4=Q3+Lv;                // boil at Tb
+  let phase,temp;
+  if(Q<0){phase='❄ Solid';temp=T_start;}
+  else if(Q<Q1){phase='❄ Solid';temp=T_start+Q/c_s;}
+  else if(Q<Q2){phase='🌡 Melting...';temp=Tf;}
+  else if(Q<Q3){phase='💧 Liquid';temp=Tf+(Q-Q2)/c_l;}
+  else if(Q<Q4){phase='♨ Boiling...';temp=Tb;}
+  else{phase='💨 Gas (Steam)';temp=Tb+(Q-Q4)/c_g;}
+  return{phase,temp};
+}
+
+// ── Build Three.js ──
+function initThree(){
+  scene=new THREE.Scene();
+  const w=threeContainer.clientWidth||threeContainer.offsetWidth||window.innerWidth||360;const h=threeContainer.clientHeight||threeContainer.offsetHeight||400;
+  camera=new THREE.PerspectiveCamera(46,w/h,0.1,300);
+  renderer=new THREE.WebGLRenderer({antialias:false,alpha:true});
+  renderer.setSize(w,h);renderer.setPixelRatio(1);
+  threeContainer.appendChild(renderer.domElement);
+  scene.add(new THREE.AmbientLight(0xffffff,0.5));
+  const sun=new THREE.DirectionalLight(0xffcc88,1.2);sun.position.set(6,12,8);scene.add(sun);
+  const fill=new THREE.PointLight(0xff6600,1.0,35);fill.position.set(-7,4,6);scene.add(fill);
+  const rim=new THREE.PointLight(0x00bfff,0.6,28);rim.position.set(6,2,-6);scene.add(rim);
+  const grid=new THREE.GridHelper(30,30,0x331100,0x220a00);
+  grid.position.y=-3;grid.material.opacity=0.4;grid.material.transparent=true;scene.add(grid);
+  let drag=false,lx=0,ly=0;
+  threeContainer.addEventListener('pointerdown',e=>{drag=true;lx=e.clientX;ly=e.clientY;threeContainer.style.cursor='grabbing';});
+  window.addEventListener('pointermove',e=>{if(!drag)return;camAngle-=(e.clientX-lx)*.009;camTilt=Math.max(.05,Math.min(1.3,camTilt-(e.clientY-ly)*.005));lx=e.clientX;ly=e.clientY;updateCam();});
+  window.addEventListener('pointerup',()=>{drag=false;threeContainer.style.cursor='grab';});
+  window.addEventListener('resize',()=>{if(!threeContainer.clientWidth)return;camera.aspect=threeContainer.clientWidth/threeContainer.clientHeight;camera.updateProjectionMatrix();renderer.setSize(threeContainer.clientWidth,threeContainer.clientHeight);});
+  updateCam();buildModeScene();animLoop();
+}
+function updateCam(){
+  camera.position.x=Math.sin(camAngle)*camDist;
+  camera.position.z=Math.cos(camAngle)*camDist;
+  camera.position.y=2+camTilt*9;
+  camera.lookAt(0,0,0);
+}
+
+// ─── EXPANSION MODE ──────────────────────────────────
+let rodMesh=null,rodOrigLen=6;
+function buildExpansionScene(){
+  const alpha=getV('mat')*1e-6,L0=getV('L0'),dT=getV('dT');
+  const dL=alpha*L0*dT;
+  // Amplify 80x for clear visual — steel at dT=100 gives 0.58 scene units stretch
+  const visualLen=rodOrigLen*(1+dL/L0*80);
+
+  // Base platform
+  const platMat=new THREE.MeshStandardMaterial({color:0x444444,metalness:.7,roughness:.3});
+  addObj(new THREE.Mesh(new THREE.BoxGeometry(14,0.2,3),platMat)).position.y=-1.5;
+
+  // Fixed left wall
+  const wallMat=new THREE.MeshStandardMaterial({color:0x666666,metalness:.8,roughness:.2});
+  const leftWall=addObj(new THREE.Mesh(new THREE.BoxGeometry(0.5,2.5,2.5),wallMat));
+  leftWall.position.set(-rodOrigLen/2-0.25,-0.25,0);
+
+  // Rod
+  const rodLen=Math.max(0.5,visualLen);
+  const rodGeo=new THREE.CylinderGeometry(0.35,0.35,rodLen,32);rodGeo.rotateZ(Math.PI/2);
+  const col=tempColor(dT,0,500);
+  rodMesh=addObj(new THREE.Mesh(rodGeo,new THREE.MeshStandardMaterial({
+    color:col,emissive:col,emissiveIntensity:.3+dT/500*.5,metalness:.6,roughness:.3
+  })));
+  rodMesh.position.set((rodLen-rodOrigLen)/2,-0.25,0);
+
+  // Right end cap
+  const capMat=new THREE.MeshStandardMaterial({color:0x888888,metalness:.9,roughness:.1});
+  const cap=addObj(new THREE.Mesh(new THREE.BoxGeometry(0.4,1.2,1.2),capMat));
+  cap.position.set(rodLen/2+0.2+(rodLen-rodOrigLen)/2,-0.25,0);
+
+  // Heat source (flame-like glowing sphere below rod)
+  if(dT>0){
+    const nFlames=Math.min(8,Math.ceil(dT/60));
+    for(let i=0;i<nFlames;i++){
+      const fx=(Math.random()-.5)*rodLen*.8+(rodLen-rodOrigLen)/2;
+      const fs=0.2+Math.random()*.3;
+      const fc=new THREE.Color(i%2===0?0xff4500:0xff8c00);
+      const flame=addObj(new THREE.Mesh(
+        new THREE.SphereGeometry(fs,8,6),
+        new THREE.MeshStandardMaterial({color:fc,emissive:fc,emissiveIntensity:1.0,transparent:true,opacity:.8})
+      ));
+      flame.position.set(fx,-1.1+Math.random()*.2,Math.random()*.4-.2);
+      flame.userData.baseY=flame.position.y;flame.userData.phase=Math.random()*Math.PI*2;
+    }
+  }
+
+  // Expansion bracket — show gap between original and expanded
+  if(dL>0.0001){
+    const gapW=Math.max(.05,(dL/L0)*rodOrigLen*20);
+    const gapGeo=new THREE.BoxGeometry(gapW,.5,.5);
+    const gapMat=new THREE.MeshBasicMaterial({color:0xffd700,transparent:true,opacity:.7});
+    const gap=addObj(new THREE.Mesh(gapGeo,gapMat));
+    gap.position.set(rodOrigLen/2+gapW/2+(rodLen-rodOrigLen)/2,0.4,0);
+    // Arrow
+    addExpansionArrow(rodOrigLen/2+(rodLen-rodOrigLen)/2, .7, gapW);
+  }
+}
+
+function addExpansionArrow(x,y,len){
+  if(len<.05)return;
+  const mat=new THREE.MeshBasicMaterial({color:0xffd700});
+  const shaft=addObj(new THREE.Mesh(new THREE.CylinderGeometry(.04,.04,len,8),mat));
+  shaft.rotation.z=Math.PI/2;shaft.position.set(x+len/2,y,0);
+  const head=addObj(new THREE.Mesh(new THREE.ConeGeometry(.12,.25,8),mat));
+  head.rotation.z=-Math.PI/2;head.position.set(x+len+.12,y,0);
+}
+
+// ─── HEAT TRANSFER MODE ──────────────────────────────
+let heatParticles=[];
+function buildHeatTransferScene(){
+  heatParticles=[];
+  const Th=getV('T_hot'),Tc=getV('T_cold'),k=getV('k_mat');
+  const barW=10,barH=2,barD=2;
+
+  // Main conducting bar — coloured as gradient from hot to cold
+  // Use multiple segments to show gradient
+  const nSeg=20;
+  const segW=barW/nSeg;
+  for(let i=0;i<nSeg;i++){
+    const t=i/(nSeg-1);
+    const segT=Th+(Tc-Th)*t;
+    const col=tempColor(segT,Tc,Th);
+    const seg=addObj(new THREE.Mesh(
+      new THREE.BoxGeometry(segW-.04,barH,barD),
+      new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:.35+t*.1,metalness:.5,roughness:.4})
+    ));
+    seg.position.x=-barW/2+segW/2+i*segW;
+  }
+
+  // Hot end block
+  const hotMat=new THREE.MeshStandardMaterial({color:0xff2200,emissive:0xff1100,emissiveIntensity:.8,metalness:.3,roughness:.5});
+  addObj(new THREE.Mesh(new THREE.BoxGeometry(1.2,barH+1,barD+0.8),hotMat)).position.x=-barW/2-0.6;
+
+  // Cold end block
+  const coldMat=new THREE.MeshStandardMaterial({color:0x0044ff,emissive:0x0022cc,emissiveIntensity:.5,metalness:.3,roughness:.5});
+  addObj(new THREE.Mesh(new THREE.BoxGeometry(1.2,barH+1,barD+0.8),coldMat)).position.x=barW/2+0.6;
+
+  // Heat flow particles (orange dots travelling hot→cold)
+  for(let i=0;i<30;i++){
+    const px=-barW/2+Math.random()*barW;
+    const pc=new THREE.Color(0xff6600);
+    const pm=new THREE.Mesh(
+      new THREE.SphereGeometry(.12,8,6),
+      new THREE.MeshBasicMaterial({color:pc,transparent:true,opacity:.8})
+    );
+    pm.position.set(px,(Math.random()-.5)*barH*.7,(Math.random()-.5)*barD*.7);
+    addObj(pm);
+    heatParticles.push({mesh:pm,x:px,speed:(.03+Math.random()*.04)*(k/200),barW});
+  }
+
+  // Conductivity label on bar
+  const thermLabels=['Insulator','Poor','Medium','Good Conductor','Excellent'];
+  const labIdx=Math.min(4,Math.floor(k/80));
+
+  // Radiation glow spheres near hot end
+  for(let i=0;i<5;i++){
+    const r=addObj(new THREE.Mesh(
+      new THREE.SphereGeometry(.15+Math.random()*.1,8,6),
+      new THREE.MeshBasicMaterial({color:0xff4400,transparent:true,opacity:.5+Math.random()*.3})
+    ));
+    r.position.set(-barW/2-.6+Math.random()*.5,(Math.random()-.5)*1.5,.5+Math.random());
+    r.userData.radGlow=true;r.userData.phase=Math.random()*Math.PI*2;
+  }
+}
+
+function stepHeatTransfer(dt){
+  heatParticles.forEach(p=>{
+    p.x+=p.speed;
+    if(p.x>p.barW/2) p.x=-p.barW/2;
+    p.mesh.position.x=p.x;
+    // Color: orange at hot end, blue at cold
+    const t=(p.x+p.barW/2)/p.barW;
+    p.mesh.material.color.set(new THREE.Color(1-t*.8, 0.2+t*.1, t*.8));
+  });
+  // Animate radiation glow
+  sceneObjs.forEach(o=>{
+    if(o.userData.radGlow){
+      o.position.y+=Math.sin(simTime*3+o.userData.phase)*0.02;
+      o.material.opacity=.3+.4*Math.abs(Math.sin(simTime*2+o.userData.phase));
+    }
+  });
+}
+
+// ─── PHASE CHANGE MODE ───────────────────────────────
+const substances=[
+  {name:'Water',  Tf:0,  Tb:100, Lf:334000, Lv:2260000, c_s:2090,c_l:4186,c_g:2010,
+   colSolid:0xaaddff,colLiquid:0x0077cc,colGas:0xcceeff},
+  {name:'Ethanol',Tf:-114,Tb:78, Lf:108000, Lv:841000,  c_s:1100,c_l:2440,c_g:1420,
+   colSolid:0xffffff,colLiquid:0xddaaff,colGas:0xeeddff},
+  {name:'Iron',   Tf:1538,Tb:2861,Lf:247000,Lv:6340000, c_s:450, c_l:550, c_g:750,
+   colSolid:0x888888,colLiquid:0xff4400,colGas:0xff8800}
+];
+let phaseHeat=0; // J/kg accumulated
+let phaseMesh=null,bubbles=[],steamParticles=[];
+
+function buildPhaseScene(){
+  phaseHeat=0;bubbles=[];steamParticles=[];
+  const sIdx=Math.round(getV('substance'));
+  const s=substances[sIdx];
+
+  // Container / beaker
+  const beakerMat=new THREE.MeshStandardMaterial({color:0x335566,transparent:true,opacity:.25,side:THREE.DoubleSide,metalness:.3,roughness:.2});
+  // Walls
+  [[6,.1,4,0,-3,0],[0.12,6,4,-3,0,0],[0.12,6,4,3,0,0],[6,6,.12,0,0,-2],[6,6,.12,0,0,2]].forEach(([w,h,d,x,y,z])=>{
+    addObj(new THREE.Mesh(new THREE.BoxGeometry(w,h,d),beakerMat)).position.set(x,y,z);
+  });
+  // Floor
+  addObj(new THREE.Mesh(new THREE.BoxGeometry(6,.15,4),new THREE.MeshStandardMaterial({color:0x223344,metalness:.6,roughness:.4}))).position.y=-3;
+
+  // Substance block
+  const col=new THREE.Color(s.colSolid);
+  phaseMesh=addObj(new THREE.Mesh(
+    new THREE.BoxGeometry(5.2,2.5,3.5),
+    new THREE.MeshStandardMaterial({color:col,transparent:true,opacity:.8,emissive:col,emissiveIntensity:.1,roughness:.3,metalness:.2})
+  ));
+  phaseMesh.position.y=-1.5;
+
+  // Bunsen burner / heat source
+  const burnerMat=new THREE.MeshStandardMaterial({color:0x555555,metalness:.8,roughness:.2});
+  addObj(new THREE.Mesh(new THREE.CylinderGeometry(.4,.5,1.5,16),burnerMat)).position.set(0,-4,0);
+  // Flame
+  const flameMat=new THREE.MeshStandardMaterial({color:0xff6600,emissive:0xff3300,emissiveIntensity:1,transparent:true,opacity:.85});
+  addObj(new THREE.Mesh(new THREE.SphereGeometry(.5,12,8),flameMat)).position.set(0,-3.1,0);
+}
+
+function stepPhaseChange(dt){
+  const sIdx=Math.round(getV('substance'));
+  const s=substances[sIdx];
+  const rate=getV('heatRate')*1000; // J/s per kg
+  phaseHeat+=rate*dt;
+
+  const {phase,temp}=getPhaseAndTemp(s,phaseHeat);
+
+  // Update phaseMesh appearance
+  if(phaseMesh){
+    let col,opacity,emissInt;
+    if(phase.includes('Solid')){
+      col=new THREE.Color(s.colSolid);opacity=.9;emissInt=.05;
+      // Hard edges remain
+    } else if(phase.includes('Melting')){
+      const t=(phaseHeat-s.c_s*(s.Tf-s.Tf+100))/s.Lf;
+      col=new THREE.Color().lerpColors(new THREE.Color(s.colSolid),new THREE.Color(s.colLiquid),Math.min(1,t));
+      opacity=.85;emissInt=.2;
+    } else if(phase.includes('Liquid')){
+      col=new THREE.Color(s.colLiquid);opacity=.7;emissInt=.15;
+    } else if(phase.includes('Boiling')){
+      col=new THREE.Color(s.colLiquid);opacity=.6;emissInt=.35;
+      // Spawn bubbles
+      if(Math.random()>.6) spawnBubble();
+    } else {
+      col=new THREE.Color(s.colGas);opacity=.25;emissInt=.05;
+      // Spawn steam
+      if(Math.random()>.7) spawnSteam();
+    }
+    phaseMesh.material.color.set(col);
+    phaseMesh.material.opacity=opacity;
+    phaseMesh.material.emissive.set(col);
+    phaseMesh.material.emissiveIntensity=emissInt;
+  }
+
+  // Update & cull bubbles
+  bubbles=bubbles.filter(b=>{
+    b.mesh.position.y+=.04;
+    b.mesh.material.opacity-=.01;
+    if(b.mesh.position.y>1||b.mesh.material.opacity<=0){
+      scene.remove(b.mesh);
+      const idx=sceneObjs.indexOf(b.mesh);
+      if(idx>-1)sceneObjs.splice(idx,1);
+      return false;
+    }
+    return true;
+  });
+  // Update & cull steam
+  steamParticles=steamParticles.filter(p=>{
+    p.mesh.position.y+=.05;p.mesh.position.x+=p.dx;
+    p.mesh.material.opacity-=.008;p.mesh.scale.addScalar(.02);
+    if(p.mesh.position.y>4||p.mesh.material.opacity<=0){
+      scene.remove(p.mesh);
+      const idx=sceneObjs.indexOf(p.mesh);
+      if(idx>-1)sceneObjs.splice(idx,1);
+      return false;
+    }
+    return true;
+  });
+  updateReadout();
+}
+
+function spawnBubble(){
+  if(bubbles.length>20)return;
+  const mat=new THREE.MeshBasicMaterial({color:0xaaddff,transparent:true,opacity:.6});
+  const m=addObj(new THREE.Mesh(new THREE.SphereGeometry(.12+Math.random()*.1,8,6),mat));
+  m.position.set((Math.random()-.5)*4.5,-2.5+Math.random()*.5,(Math.random()-.5)*3);
+  bubbles.push({mesh:m});
+}
+function spawnSteam(){
+  if(steamParticles.length>30)return;
+  const mat=new THREE.MeshBasicMaterial({color:0xccddff,transparent:true,opacity:.45});
+  const m=addObj(new THREE.Mesh(new THREE.SphereGeometry(.18+Math.random()*.15,6,5),mat));
+  m.position.set((Math.random()-.5)*4,-0.5,(Math.random()-.5)*3);
+  steamParticles.push({mesh:m,dx:(Math.random()-.5)*.02});
+}
+
+// ── Build scene ──
+function buildModeScene(){
+  clearObjs();heatParticles=[];bubbles=[];steamParticles=[];rodMesh=null;phaseMesh=null;
+  if(simMode==='expansion') buildExpansionScene();
+  else if(simMode==='transfer') buildHeatTransferScene();
+  else buildPhaseScene();
+  buildReadoutCards();
+  updateReadout();
+  updateFormulaBar();
+}
+
+function updateFormulaBar(){
+  const f={
+    expansion:'ΔL = αL₀ΔT &nbsp;|&nbsp; ΔA = 2αA₀ΔT &nbsp;|&nbsp; ΔV = 3αV₀ΔT',
+    transfer:'H = kA(T₁−T₂)/d (conduction) &nbsp;|&nbsp; Q = mcΔT',
+    phase:'Q = mcΔT (heating) &nbsp;|&nbsp; Q = mL (phase change at constant T)'
+  };
+  document.getElementById('formula-bar').innerHTML=f[simMode];
+}
+
+// ── Expansion flame animation ──
+function stepExpansion(dt){
+  sceneObjs.forEach(o=>{
+    if(o.userData.baseY!==undefined){
+      o.position.y=o.userData.baseY+Math.sin(simTime*4+o.userData.phase)*0.08;
+      o.material.emissiveIntensity=0.7+Math.sin(simTime*5+o.userData.phase)*0.3;
+    }
+  });
+}
+
+// ── Animation loop ──
+let lastTS=null;
+function animLoop(ts){
+  requestAnimationFrame(animLoop);
+  const dt=lastTS?Math.min((ts-lastTS)/1000,.05):.016;
+  lastTS=ts;
+  if(simRunning){
+    simTime+=dt;
+    if(simMode==='expansion') stepExpansion(dt);
+    else if(simMode==='transfer') stepHeatTransfer(dt);
+    else stepPhaseChange(dt);
+    if(simMode!=='phase'&&Math.floor(simTime*4)!==Math.floor((simTime-dt)*4)) updateReadout();
+  }
+  if(renderer&&scene&&camera) renderer.render(scene,camera);
+}
+
+// ── Controls ──
+function resetSim(){
+  simRunning=false;simTime=0;phaseHeat=0;
+  document.getElementById('play-btn').textContent='▶ Heat Up';
+  if(scene){buildModeScene();}
+}
+document.getElementById('play-btn').addEventListener('click',()=>{
+  simRunning=!simRunning;
+  document.getElementById('play-btn').textContent=simRunning?'⏸ Pause':'▶ Heat Up';
+  if(simRunning){score+=2;updateStats();}
+});
+document.getElementById('reset-btn').addEventListener('click',resetSim);
+['expansion','transfer','phase'].forEach(m=>{
+  document.getElementById('btn-'+m).addEventListener('click',()=>{
+    simMode=m;
+    document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('btn-'+m).classList.add('active');
+    buildControls();resetSim();
+  });
+});
+buildControls();
+
+// ── Lazy init ──
+let threeReady=false;
+function ensureThree(){if(threeReady)return;const w=threeContainer.clientWidth||threeContainer.offsetWidth;if(w===0){setTimeout(ensureThree,150);return;}threeReady=true;initThree();resetSim();}
+document.querySelector('.tab[data-tab="sim"]').addEventListener('click',()=>setTimeout(ensureThree,150));
+setTimeout(ensureThree,500);
+
+// ── MATCH ────────────────────────────────────────────
+const pairs=[
+  {term:'Q = mcΔT',def:'Sensible heat formula'},
+  {term:'Q = mL',def:'Latent heat (phase change)'},
+  {term:'ΔL = αL₀ΔT',def:'Linear thermal expansion'},
+  {term:'Radiation',def:'Heat transfer needing no medium'},
+  {term:'Newton\'s Cooling',def:'Rate ∝ excess temperature'},
+  {term:'Triple Point',def:'All 3 phases coexist'}
+];
+let matchSelected=null,matchedCount=0;
+function shuffle(a){return a.sort(()=>Math.random()-0.5);}
+function renderMatch(){
+  matchedCount=0;matchSelected=null;
+  const grid=document.getElementById('match-grid');
+  const items=[];
+  pairs.forEach((p,i)=>{items.push({type:'term',text:p.term,id:i});items.push({type:'def',text:p.def,id:i});});
+  shuffle(items);
+  grid.innerHTML=items.map(it=>`<div class="match-card" data-type="${it.type}" data-id="${it.id}">${it.text}</div>`).join('');
+  grid.querySelectorAll('.match-card').forEach(c=>c.addEventListener('click',()=>handleMatch(c)));
+}
+function handleMatch(card){
+  if(card.classList.contains('matched'))return;
+  if(matchSelected===card){card.classList.remove('selected');matchSelected=null;return;}
+  if(!matchSelected){card.classList.add('selected');matchSelected=card;return;}
+  if(card.dataset.id===matchSelected.dataset.id&&card.dataset.type!==matchSelected.dataset.type){
+    card.classList.add('matched');matchSelected.classList.add('matched');
+    matchSelected.classList.remove('selected');matchSelected=null;
+    matchedCount++;score+=8;streak++;updateStats();
+    if(matchedCount===pairs.length){setTimeout(()=>showWin('All matched! +20 bonus 🎯'),400);score+=20;updateStats();}
+  }else{
+    card.classList.add('wrong');matchSelected.classList.add('wrong');
+    streak=0;updateStats();
+    const prev=matchSelected;
+    setTimeout(()=>{card.classList.remove('wrong','selected');prev.classList.remove('wrong','selected');},600);
+    matchSelected=null;
+  }
+}
+document.getElementById('match-reset').addEventListener('click',renderMatch);
+renderMatch();
+</script>
+</body>
+</html>

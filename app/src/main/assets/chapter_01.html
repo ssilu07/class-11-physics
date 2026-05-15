@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Physics Explorer — Physical World</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Exo+2:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--accent:#00bcd4;--accent2:#0097a7;--bg:#020b18;--bg2:#041428;--bg3:#071e35;--glass:rgba(0,188,212,.07);--gb:rgba(0,188,212,.18);--text:#e0f7fa;--text2:#80deea;--ok:#4caf50;--err:#f44336;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;min-height:100vh;overflow-x:hidden;}
+#stars{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;}
+.star{position:absolute;border-radius:50%;background:#fff;animation:twinkle 3s infinite alternate;}
+@keyframes twinkle{from{opacity:.2;transform:scale(1)}to{opacity:1;transform:scale(1.5)}}
+header{position:relative;z-index:10;background:linear-gradient(135deg,rgba(2,11,24,.97),rgba(4,20,40,.97));border-bottom:1px solid var(--gb);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;backdrop-filter:blur(12px);}
+.htitle h1{font-family:'Exo 2',sans-serif;font-size:clamp(1rem,3vw,1.45rem);font-weight:700;background:linear-gradient(90deg,var(--accent),#80deea,#b2ebf2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.htitle p{font-size:.72rem;color:var(--text2);margin-top:2px;font-family:'Share Tech Mono',monospace;}
+.stats{display:flex;gap:10px;flex-wrap:wrap;}
+.chip{background:var(--glass);border:1px solid var(--gb);border-radius:20px;padding:5px 13px;font-family:'Share Tech Mono',monospace;font-size:.78rem;color:var(--accent);}
+.tabs{position:relative;z-index:10;display:flex;background:var(--bg2);border-bottom:1px solid var(--gb);}
+.tbtn{flex:1;padding:13px 6px;background:none;border:none;cursor:pointer;color:var(--text2);font-family:'Exo 2',sans-serif;font-size:.88rem;font-weight:600;transition:all .3s;border-bottom:3px solid transparent;}
+.tbtn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tbtn:hover{color:var(--accent);background:rgba(0,188,212,.05);}
+.tc{display:none;position:relative;z-index:5;padding:20px 14px;max-width:880px;margin:0 auto;}
+.tc.active{display:block;}
+.card{background:var(--glass);border:1px solid var(--gb);border-radius:16px;padding:18px;margin-bottom:18px;backdrop-filter:blur(8px);transition:transform .2s,box-shadow .2s;}
+.card:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,188,212,.15);}
+.card h2{font-family:'Exo 2',sans-serif;font-size:1.05rem;font-weight:700;color:var(--accent);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.card h3{font-size:.9rem;color:var(--text2);margin:10px 0 5px;font-family:'Exo 2',sans-serif;}
+.card p,.card li{font-size:.88rem;line-height:1.75;color:var(--text);}
+.card ul{padding-left:18px;}
+.card li{margin-bottom:3px;}
+.fml{background:rgba(0,188,212,.1);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:9px 13px;margin:9px 0;font-family:'Share Tech Mono',monospace;font-size:.82rem;color:#b2ebf2;}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-top:12px;}
+.mini-card{background:rgba(0,0,0,.35);border-radius:10px;padding:12px;}
+.mini-card .mc-name{color:var(--accent);font-weight:700;font-size:.9rem;}
+.mini-card .mc-sub{font-size:.78rem;color:var(--text2);margin-top:3px;}
+.force-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-top:14px;}
+.fcard{border-radius:12px;padding:15px;border:1px solid;text-align:center;transition:all .3s;}
+.fcard:hover{transform:scale(1.04);}
+.fcard .icon{font-size:1.8rem;margin-bottom:6px;}
+.fcard h4{font-family:'Exo 2',sans-serif;font-size:.85rem;font-weight:700;margin-bottom:3px;}
+.fcard p{font-size:.73rem;opacity:.8;}
+canvas{border-radius:12px;border:1px solid var(--gb);max-width:100%;background:#000d1a;cursor:pointer;display:block;margin:0 auto;}
+.sinfo{background:var(--glass);border:1px solid var(--gb);border-radius:12px;padding:14px;margin-top:14px;min-height:110px;transition:all .3s;}
+.sinfo h3{font-family:'Exo 2',sans-serif;margin-bottom:7px;}
+.igrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:10px;}
+.iitem{background:rgba(0,0,0,.3);border-radius:8px;padding:9px;}
+.iitem label{font-size:.68rem;color:var(--text2);font-family:'Share Tech Mono',monospace;text-transform:uppercase;}
+.iitem span{display:block;font-size:.85rem;color:var(--accent);font-weight:700;margin-top:2px;}
+.hint{font-size:.78rem;color:var(--text2);margin-top:10px;font-family:'Share Tech Mono',monospace;text-align:center;}
+.qprog{display:flex;gap:7px;margin-bottom:18px;flex-wrap:wrap;}
+.qdot{width:31px;height:31px;border-radius:50%;border:2px solid var(--gb);display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;cursor:pointer;transition:all .3s;font-family:'Share Tech Mono',monospace;}
+.qdot.ok{background:var(--ok);border-color:var(--ok);color:#fff;}
+.qdot.err{background:var(--err);border-color:var(--err);color:#fff;}
+.qdot.cur{border-color:var(--accent);color:var(--accent);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.qcard{animation:fadeUp .4s;}
+.qtext{font-size:.97rem;font-weight:600;margin-bottom:14px;line-height:1.65;}
+.opts{display:grid;gap:9px;}
+.obtn{background:var(--glass);border:1px solid var(--gb);border-radius:10px;padding:11px 15px;color:var(--text);font-family:'Nunito',sans-serif;font-size:.88rem;cursor:pointer;text-align:left;transition:all .25s;}
+.obtn:hover:not(:disabled){background:rgba(0,188,212,.15);border-color:var(--accent);transform:translateX(4px);}
+.obtn.ok{background:rgba(76,175,80,.2);border-color:var(--ok);color:#a5d6a7;}
+.obtn.err{background:rgba(244,67,54,.2);border-color:var(--err);color:#ef9a9a;}
+.obtn:disabled{cursor:default;}
+.expl{background:rgba(0,188,212,.08);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:11px 13px;margin-top:11px;font-size:.83rem;line-height:1.65;display:none;}
+.expl.show{display:block;animation:fadeUp .3s;}
+.qnav{display:flex;gap:11px;margin-top:14px;align-items:center;flex-wrap:wrap;}
+.btn{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#000;border:none;border-radius:8px;padding:9px 19px;font-family:'Exo 2',sans-serif;font-weight:700;font-size:.88rem;cursor:pointer;transition:all .25s;}
+.btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,188,212,.4);}
+.btn-o{background:none;border:1px solid var(--accent);color:var(--accent);border-radius:8px;padding:9px 19px;font-family:'Exo 2',sans-serif;font-weight:700;font-size:.88rem;cursor:pointer;transition:all .25s;}
+.btn-o:hover{background:rgba(0,188,212,.1);}
+.spanel{text-align:center;padding:28px;display:none;}
+.spanel.show{display:block;animation:fadeUp .5s;}
+.sbig{font-size:3.5rem;font-weight:800;font-family:'Exo 2',sans-serif;background:linear-gradient(90deg,var(--accent),#b2ebf2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.smsg{font-size:1rem;color:var(--text2);margin:7px 0 18px;}
+.qctr{font-family:'Share Tech Mono',monospace;font-size:.82rem;color:var(--text2);}
+@media(max-width:580px){.tbtn{font-size:.78rem;padding:11px 3px;}.htitle h1{font-size:.95rem;}}
+</style>
+</head>
+<body>
+<div id="stars"></div>
+<header>
+  <div class="htitle">
+    <h1>&#9883; Physics Explorer — Physical World</h1>
+    <p>Chapter 01 &bull; Class XI &bull; NCERT Physics</p>
+  </div>
+  <div class="stats">
+    <div class="chip">Score: <span id="hsc">0</span></div>
+    <div class="chip">Streak: <span id="hst">0</span> &#128293;</div>
+    <div class="chip">Ch.01</div>
+  </div>
+</header>
+<div class="tabs">
+  <button class="tbtn active" onclick="sw('theory',this)">&#128218; Theory</button>
+  <button class="tbtn" onclick="sw('simulation',this)">&#128301; Simulation</button>
+  <button class="tbtn" onclick="sw('quiz',this)">&#127381; Quiz</button>
+</div>
+
+<!-- THEORY -->
+<div id="theory" class="tc active">
+  <div class="card">
+    <h2>&#127760; What is Physics?</h2>
+    <p>Physics is the branch of science that deals with the study of matter, energy, and their interactions. It seeks to understand fundamental laws of nature through observation, experimentation, and mathematical formulation.</p>
+    <h3>Scope of Physics</h3>
+    <ul>
+      <li><strong>Macroscopic domain:</strong> Classical mechanics, thermodynamics — objects visible to the naked eye</li>
+      <li><strong>Microscopic domain:</strong> Quantum mechanics — atoms, nuclei, electrons and subatomic particles</li>
+      <li><strong>Mesoscopic domain:</strong> Between macro and micro — nanoscale systems (~10&#8315;&#8313; m)</li>
+      <li><strong>Cosmological domain:</strong> The Universe, galaxies, black holes (scales up to 10&#8314;&#178;&#8309; m)</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h2>&#9878; Nature of Physical Laws</h2>
+    <ul>
+      <li>Physical laws are <strong>universal</strong> — valid everywhere in the universe at all times</li>
+      <li>They are <strong>symmetrical</strong> — laws don't change with time (time symmetry), position (space symmetry), or orientation (rotational symmetry)</li>
+      <li>They are based on <strong>observations and experiments</strong> that can be independently verified</li>
+      <li>A hypothesis becomes a theory and then a law after rigorous testing and verification</li>
+      <li>Conservation laws (energy, momentum, charge, angular momentum) are pillars of physics</li>
+    </ul>
+    <div class="fml">Conservation of Energy: E_total = KE + PE = constant (in isolated system)</div>
+    <div class="fml">Conservation of Momentum: p_total = m₁v₁ + m₂v₂ = constant (no external force)</div>
+    <div class="fml">Conservation of Charge: Total charge in an isolated system always remains constant</div>
+  </div>
+  <div class="card">
+    <h2>&#9889; The Four Fundamental Forces</h2>
+    <p>All forces in nature can be traced back to just four fundamental interactions:</p>
+    <div class="force-grid">
+      <div class="fcard" style="border-color:#f44336;background:rgba(244,67,54,.08)">
+        <div class="icon">&#128165;</div>
+        <h4 style="color:#f44336">Strong Nuclear</h4>
+        <p>Binds protons &amp; neutrons in nucleus. Range: ~10&#8315;&#185;&#8309; m</p>
+      </div>
+      <div class="fcard" style="border-color:#ff9800;background:rgba(255,152,0,.08)">
+        <div class="icon">&#9762;</div>
+        <h4 style="color:#ff9800">Weak Nuclear</h4>
+        <p>Responsible for radioactive decay. Range: ~10&#8315;&#185;&#8312; m</p>
+      </div>
+      <div class="fcard" style="border-color:#00bcd4;background:rgba(0,188,212,.08)">
+        <div class="icon">&#9889;</div>
+        <h4 style="color:#00bcd4">Electromagnetic</h4>
+        <p>Between charged particles. Range: Infinite (1/r²)</p>
+      </div>
+      <div class="fcard" style="border-color:#9c27b0;background:rgba(156,39,176,.08)">
+        <div class="icon">&#127760;</div>
+        <h4 style="color:#9c27b0">Gravitational</h4>
+        <p>Between any two masses. Range: Infinite (1/r²)</p>
+      </div>
+    </div>
+    <div class="fml">F_gravity = G·m₁·m₂/r²  where G = 6.674×10⁻¹¹ N·m²/kg²</div>
+    <div class="fml">F_em = k·q₁·q₂/r²  where k = 9×10⁹ N·m²/C²</div>
+  </div>
+  <div class="card">
+    <h2>&#128187; Physics &amp; Technology Connection</h2>
+    <ul>
+      <li><strong>Steam engine</strong> → Thermodynamics → Industrial Revolution</li>
+      <li><strong>Maxwell's equations</strong> → Radio, television, wireless communication, internet</li>
+      <li><strong>Quantum mechanics</strong> → Transistors, semiconductors, computers, smartphones</li>
+      <li><strong>Nuclear physics</strong> → Nuclear power plants, medical imaging (X-rays, MRI, PET)</li>
+      <li><strong>Laser physics</strong> → CDs, fiber optics, surgical lasers, barcode scanners</li>
+      <li><strong>General relativity</strong> → GPS satellites need relativistic time corrections to work</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h2>&#128301; Key Scientists &amp; Discoveries</h2>
+    <div class="grid2">
+      <div class="mini-card"><div class="mc-name">Isaac Newton</div><div class="mc-sub">Laws of motion, Universal gravitation, Optics, Calculus</div></div>
+      <div class="mini-card"><div class="mc-name">James C. Maxwell</div><div class="mc-sub">Electromagnetic theory, unified light with EM waves</div></div>
+      <div class="mini-card"><div class="mc-name">Albert Einstein</div><div class="mc-sub">Special &amp; General Relativity, E=mc², Photoelectric effect</div></div>
+      <div class="mini-card"><div class="mc-name">Niels Bohr</div><div class="mc-sub">Atomic model, quantum mechanics pioneer, complementarity</div></div>
+      <div class="mini-card"><div class="mc-name">C.V. Raman</div><div class="mc-sub">Raman Effect — inelastic scattering of light (Nobel 1930)</div></div>
+      <div class="mini-card"><div class="mc-name">S.N. Bose</div><div class="mc-sub">Bose-Einstein statistics, Boson particles</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- SIMULATION -->
+<div id="simulation" class="tc">
+  <div class="card">
+    <h2>&#128301; Fundamental Forces Explorer</h2>
+    <p style="font-size:.83rem;color:var(--text2);margin-bottom:12px">Click on any force node in the diagram to explore its properties, relative strength, range, and real-world examples.</p>
+    <canvas id="fc" width="700" height="400"></canvas>
+    <div class="hint" id="shint">&#128432; Click on a force node to see detailed information</div>
+    <div class="sinfo">
+      <h3 id="ititle" style="color:var(--accent)">Select a Force Node</h3>
+      <p id="idesc" style="font-size:.83rem;color:var(--text2)">Click on one of the four glowing force nodes in the canvas above. Each node represents one of the four fundamental forces of nature. Compare their relative strengths and ranges!</p>
+      <div class="igrid" id="igrid" style="display:none">
+        <div class="iitem"><label>Relative Strength</label><span id="istr">—</span></div>
+        <div class="iitem"><label>Range</label><span id="irng">—</span></div>
+        <div class="iitem"><label>Mediating Particle</label><span id="ipar">—</span></div>
+        <div class="iitem"><label>Real World Example</label><span id="iex">—</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- QUIZ -->
+<div id="quiz" class="tc">
+  <div class="card">
+    <h2>&#127381; Quiz — Physical World</h2>
+    <div class="qprog" id="qprog"></div>
+    <div id="qarea">
+      <div class="qcard">
+        <div class="qtext" id="qtext"></div>
+        <div class="opts" id="qopts"></div>
+        <div class="expl" id="qexpl"></div>
+      </div>
+      <div class="qnav">
+        <button class="btn" id="nxtbtn" onclick="nextQ()" style="display:none">Next &#8594;</button>
+        <span class="qctr" id="qctr"></span>
+      </div>
+    </div>
+    <div class="spanel" id="spanel">
+      <div class="sbig" id="fscore"></div>
+      <div class="smsg" id="fmsg"></div>
+      <button class="btn" onclick="resetQ()">&#8635; Retry Quiz</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Stars
+(function(){
+  const c=document.getElementById('stars');
+  for(let i=0;i<110;i++){
+    const s=document.createElement('div');s.className='star';
+    const z=Math.random()*2.4+.5;
+    s.style.cssText=`width:${z}px;height:${z}px;top:${Math.random()*100}%;left:${Math.random()*100}%;animation-delay:${Math.random()*5}s;animation-duration:${2+Math.random()*4}s;opacity:${Math.random()*.7+.1}`;
+    c.appendChild(s);
+  }
+})();
+
+// Tabs
+function sw(id,btn){
+  document.querySelectorAll('.tc').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='simulation')initSim();
+}
+
+// Score
+let totalSc=0,streak=0;
+function updHdr(){document.getElementById('hsc').textContent=totalSc;document.getElementById('hst').textContent=streak;}
+
+// === SIMULATION ===
+const forces=[
+  {id:'strong',label:'Strong\nNuclear',color:'#f44336',ax:0,ay:-1,
+   str:'1 (Strongest)',rng:'~10⁻¹⁵ m (1 fm)',par:'Gluons',ex:'Protons+neutrons bound in nucleus',
+   desc:'The strongest fundamental force. Acts only at sub-nuclear distances (~1 fm). Overcomes EM repulsion between protons inside nuclei. Mediated by gluons via color charge.'},
+  {id:'weak',label:'Weak\nNuclear',color:'#ff9800',ax:1,ay:0,
+   str:'~10⁻¹³',rng:'~10⁻¹⁸ m',par:'W±, Z bosons',ex:'Beta decay: n → p + e⁻ + antineutrino',
+   desc:'Responsible for radioactive beta decay and nuclear fusion in stars. Very short range. At high energies, weak and electromagnetic forces unify into electroweak force.'},
+  {id:'em',label:'Electro-\nmagnetic',color:'#00bcd4',ax:0,ay:1,
+   str:'~10⁻²',rng:'Infinite (∞)',par:'Photons',ex:'Electricity, light, chemical bonds, magnets',
+   desc:'Infinite range, decreases as 1/r². Acts between charged particles. Responsible for all chemistry, optics, and electric/magnetic phenomena. Can be attractive or repulsive.'},
+  {id:'grav',label:'Gravi-\ntational',color:'#9c27b0',ax:-1,ay:0,
+   str:'~10⁻³⁹ (Weakest)',rng:'Infinite (∞)',par:'Gravitons (hypothetical)',ex:'Planetary orbits, tides, falling objects',
+   desc:'Weakest of all forces but infinite range. Always attractive, acts between any two masses. Dominates at cosmic scales because it is always additive (never cancels).'}
+];
+
+let simInited=false,selF=null,pt=0,animReq=null;
+function initSim(){
+  if(simInited)return;simInited=true;
+  const cv=document.getElementById('fc'),ctx=cv.getContext('2d');
+  function resize(){
+    const w=Math.min(700,cv.parentElement.clientWidth-30);
+    cv.style.width=w+'px';cv.style.height=(w*400/700)+'px';
+  }
+  resize();window.addEventListener('resize',resize);
+
+  function nodePos(f){
+    return{x:cv.width/2+f.ax*160,y:cv.height/2+f.ay*140};
+  }
+
+  cv.addEventListener('click',e=>{
+    const r=cv.getBoundingClientRect();
+    const sx=cv.width/r.width,sy=cv.height/r.height;
+    const mx=(e.clientX-r.left)*sx,my=(e.clientY-r.top)*sy;
+    let hit=null;
+    forces.forEach(f=>{const p=nodePos(f);if(Math.hypot(mx-p.x,my-p.y)<52)hit=f;});
+    if(hit){selF=hit;showFInfo(hit);}
+  });
+
+  function showFInfo(f){
+    document.getElementById('ititle').textContent=f.label.replace('\n',' ')+' Force';
+    document.getElementById('ititle').style.color=f.color;
+    document.getElementById('idesc').textContent=f.desc;
+    document.getElementById('istr').textContent=f.str;
+    document.getElementById('irng').textContent=f.rng;
+    document.getElementById('ipar').textContent=f.par;
+    document.getElementById('iex').textContent=f.ex;
+    document.getElementById('igrid').style.display='grid';
+    document.getElementById('shint').textContent='Showing: '+f.label.replace('\n',' ')+' Force — click another to compare';
+  }
+
+  function frame(ts){
+    pt=ts/1000;
+    ctx.clearRect(0,0,cv.width,cv.height);
+    const cx=cv.width/2,cy=cv.height/2;
+    // bg
+    const bg=ctx.createRadialGradient(cx,cy,10,cx,cy,300);
+    bg.addColorStop(0,'#001a2e');bg.addColorStop(1,'#000810');
+    ctx.fillStyle=bg;ctx.fillRect(0,0,cv.width,cv.height);
+    // orbit ring
+    ctx.save();ctx.strokeStyle='rgba(0,188,212,.1)';ctx.lineWidth=1;
+    ctx.setLineDash([4,8]);ctx.beginPath();ctx.arc(cx,cy,Math.sqrt(160*160+140*140),0,Math.PI*2);ctx.stroke();
+    ctx.setLineDash([]);ctx.restore();
+    // lines
+    forces.forEach(f=>{
+      const p=nodePos(f);
+      ctx.save();ctx.globalAlpha=.35+.1*Math.sin(pt*1.5);
+      ctx.strokeStyle=f.color;ctx.lineWidth=1.5;ctx.setLineDash([5,6]);
+      ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(p.x,p.y);ctx.stroke();
+      ctx.setLineDash([]);ctx.restore();
+    });
+    // center node
+    const cp=1+.07*Math.sin(pt*2);
+    ctx.save();ctx.shadowBlur=35;ctx.shadowColor='#00bcd4';
+    const cg=ctx.createRadialGradient(cx,cy,2,cx,cy,40*cp);
+    cg.addColorStop(0,'rgba(0,188,212,.9)');cg.addColorStop(1,'rgba(0,80,100,.2)');
+    ctx.fillStyle=cg;ctx.beginPath();ctx.arc(cx,cy,40*cp,0,Math.PI*2);ctx.fill();ctx.restore();
+    ctx.font='bold 11px "Exo 2",sans-serif';ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('PHYSICS',cx,cy-5);
+    ctx.font='9px "Share Tech Mono",monospace';ctx.fillStyle='#80deea';ctx.fillText('Forces',cx,cy+8);
+    // force nodes
+    forces.forEach(f=>{
+      const p=nodePos(f);const isSel=selF&&selF.id===f.id;
+      const pr=isSel?1+.12*Math.sin(pt*3.5):1;const nr=isSel?50:40;
+      ctx.save();ctx.shadowBlur=isSel?45:20;ctx.shadowColor=f.color;
+      const ng=ctx.createRadialGradient(p.x,p.y,2,p.x,p.y,nr*pr);
+      ng.addColorStop(0,f.color+'cc');ng.addColorStop(1,f.color+'22');
+      ctx.fillStyle=ng;ctx.beginPath();ctx.arc(p.x,p.y,nr*pr,0,Math.PI*2);ctx.fill();
+      if(isSel){ctx.strokeStyle=f.color;ctx.lineWidth=2.5;ctx.stroke();}
+      ctx.restore();
+      ctx.font='bold 10px "Exo 2",sans-serif';ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';
+      const ls=f.label.split('\n');
+      ls.forEach((l,i)=>ctx.fillText(l,p.x,p.y+(i-(ls.length-1)/2)*14));
+    });
+    animReq=requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+// === QUIZ ===
+const Qs=[
+  {q:"Which is the STRONGEST fundamental force in nature?",o:["Gravitational","Electromagnetic","Strong Nuclear","Weak Nuclear"],a:2,
+   e:"Strong nuclear force is the strongest — ~100× stronger than electromagnetic. It binds quarks together and holds protons/neutrons in the nucleus, overcoming EM repulsion."},
+  {q:"Which fundamental force is responsible for radioactive BETA decay (neutron → proton)?",o:["Gravitational force","Strong nuclear force","Electromagnetic force","Weak nuclear force"],a:3,
+   e:"Weak nuclear force causes beta decay. A neutron converts into a proton by emitting a W⁻ boson which decays into an electron and an electron-antineutrino."},
+  {q:"Relative to the strong nuclear force, gravitational force is approximately:",o:["10⁻¹³ times weaker","10⁻²⁵ times weaker","10⁻³⁹ times weaker","Equal in strength"],a:2,
+   e:"Gravity is ~10⁻³⁹ times the strong force — extraordinarily weak! That is why we need planetary masses to feel gravitational effects in everyday life."},
+  {q:"Which pair of forces has INFINITE range following the inverse-square law?",o:["Strong + Weak","Weak + Gravitational","Electromagnetic + Gravitational","Strong + Electromagnetic"],a:2,
+   e:"Both gravitational (F=Gm₁m₂/r²) and electromagnetic forces (F=kq₁q₂/r²) have infinite range and follow the inverse-square law. Nuclear forces are extremely short-range."},
+  {q:"Development of which physics area directly enabled modern computers and smartphones?",o:["Classical mechanics","Quantum mechanics & solid-state physics","Thermodynamics","Special relativity"],a:1,
+   e:"Quantum mechanics explained energy bands in solids, leading to transistors and semiconductors — the foundation of all modern electronics, computers, and smartphones."},
+  {q:"C.V. Raman received the Nobel Prize (1930) for discovering:",o:["Nuclear fission","Photoelectric effect","Raman Effect (inelastic scattering of light)","Bose-Einstein statistics"],a:2,
+   e:"C.V. Raman discovered the Raman Effect in 1928 — when light passes through matter, some photons scatter with changed frequency. He was the first Asian to win a Nobel in science."}
+];
+
+let curQ=0,sc=0,ans=[];
+function initQ(){ans=new Array(Qs.length).fill(null);curQ=0;sc=0;renderProg();renderQ();}
+function renderProg(){
+  const el=document.getElementById('qprog');el.innerHTML='';
+  Qs.forEach((q,i)=>{
+    const d=document.createElement('div');
+    d.className='qdot'+(i===curQ?' cur':'')+(ans[i]===true?' ok':ans[i]===false?' err':'');
+    d.textContent=i+1;d.onclick=()=>{if(ans[i]!==null){curQ=i;renderQ();}};
+    el.appendChild(d);
+  });
+}
+function renderQ(){
+  const q=Qs[curQ];
+  document.getElementById('qtext').textContent=(curQ+1)+'. '+q.q;
+  document.getElementById('qctr').textContent='Question '+(curQ+1)+' of '+Qs.length;
+  const opts=document.getElementById('qopts');opts.innerHTML='';
+  q.o.forEach((o,i)=>{
+    const b=document.createElement('button');b.className='obtn';
+    b.textContent=String.fromCharCode(65+i)+') '+o;b.onclick=()=>pick(i);
+    if(ans[curQ]!==null){
+      b.disabled=true;
+      if(i===q.a)b.classList.add('ok');
+      else if(ans[curQ]===i)b.classList.add('err');
+    }
+    opts.appendChild(b);
+  });
+  const ex=document.getElementById('qexpl');ex.textContent=q.e;
+  ex.className='expl'+(ans[curQ]!==null?' show':'');
+  document.getElementById('nxtbtn').style.display=ans[curQ]!==null?'inline-block':'none';
+  renderProg();
+}
+function pick(i){
+  if(ans[curQ]!==null)return;
+  const ok=i===Qs[curQ].a;ans[curQ]=ok;
+  if(ok){sc++;totalSc+=10;streak++;}else{streak=0;}
+  updHdr();renderQ();
+  if(ans.every(a=>a!==null)&&curQ===Qs.length-1)setTimeout(showSc,600);
+}
+function nextQ(){
+  if(curQ<Qs.length-1){curQ++;renderQ();}else showSc();
+}
+function showSc(){
+  document.getElementById('qarea').style.display='none';
+  document.getElementById('spanel').classList.add('show');
+  document.getElementById('fscore').textContent=sc+'/'+Qs.length;
+  const p=sc/Qs.length;
+  const m=['Keep studying! Review the theory tab.','Good effort! A bit more practice needed.','Great job! You understand this chapter well.','Perfect! Physics Champion! &#127942;'];
+  document.getElementById('fmsg').innerHTML=m[Math.min(Math.floor(p*4),3)];
+}
+function resetQ(){document.getElementById('qarea').style.display='block';document.getElementById('spanel').classList.remove('show');initQ();}
+initQ();
+</script>
+</body>
+</html>

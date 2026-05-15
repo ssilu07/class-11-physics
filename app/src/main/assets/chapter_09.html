@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solid Breaker — Mechanical Properties of Solids</title>
+<link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;600;700&family=Share+Tech+Mono&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="three.min.js"></script>
+<style>
+  :root{
+    --bg:#0c0a00;--bg2:#1a1500;
+    --accent:#f5a623;--steel:#a8c5da;
+    --green:#00ff88;--red:#ff3b5c;
+    --violet:#9b59b6;--gold:#ffd700;
+    --text:#fff8e7;--muted:#6b6040;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{overflow-x:hidden}
+  body{
+    font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;
+    background-image:radial-gradient(circle at 20% 25%,rgba(245,166,35,.14),transparent 45%),radial-gradient(circle at 80% 75%,rgba(168,197,218,.1),transparent 45%),radial-gradient(circle at 50% 50%,rgba(0,255,136,.06),transparent 50%);
+    padding:20px 16px 60px;
+  }
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(245,166,35,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(245,166,35,.03) 1px,transparent 1px);background-size:44px 44px;pointer-events:none;z-index:0;}
+  .container{position:relative;z-index:1;max-width:900px;margin:0 auto}
+  header{text-align:center;margin-bottom:28px;padding:20px 0}
+  .title{font-family:'Teko',sans-serif;font-weight:700;font-size:clamp(2.2rem,8vw,4.2rem);line-height:1;letter-spacing:4px;background:linear-gradient(135deg,var(--gold),var(--accent),var(--steel));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 30px rgba(245,166,35,.5));}
+  .subtitle{font-family:'Share Tech Mono',monospace;color:var(--accent);font-size:.82rem;margin-top:8px;letter-spacing:3px;text-transform:uppercase}
+  .stats{display:flex;justify-content:center;gap:14px;margin-top:16px;flex-wrap:wrap}
+  .stat{background:rgba(255,255,255,.05);border:1px solid rgba(245,166,35,.2);border-radius:12px;padding:8px 16px;font-family:'Share Tech Mono',monospace;font-size:.8rem}
+  .stat strong{color:var(--gold);font-size:1rem}
+  .tabs{display:flex;gap:8px;margin-bottom:22px;background:rgba(255,255,255,.04);padding:6px;border-radius:16px;border:1px solid rgba(255,255,255,.07);overflow-x:auto}
+  .tab{flex:1;min-width:fit-content;padding:11px 14px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;font-size:.9rem;border-radius:10px;transition:all .25s;white-space:nowrap}
+  .tab.active{background:linear-gradient(135deg,var(--accent),var(--gold));color:#0c0a00;box-shadow:0 4px 18px rgba(245,166,35,.4)}
+  .panel{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:22px;padding:22px;backdrop-filter:blur(10px);display:none;animation:fadeIn .4s ease}
+  .panel.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .panel h2{font-family:'Teko',sans-serif;font-weight:700;font-size:1.7rem;margin-bottom:6px;color:var(--gold);letter-spacing:2px}
+  .panel-sub{color:var(--muted);font-size:.88rem;margin-bottom:18px}
+  .question-box{background:linear-gradient(135deg,rgba(245,166,35,.09),rgba(168,197,218,.06));border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:18px;margin-bottom:14px}
+  .q-text{font-size:1.02rem;font-weight:600;line-height:1.5;margin-bottom:5px}
+  .q-meta{font-family:'Share Tech Mono',monospace;font-size:.72rem;color:var(--accent);letter-spacing:1px}
+  .options{display:grid;gap:9px}
+  .option{background:rgba(255,255,255,.05);border:2px solid rgba(255,255,255,.09);color:var(--text);padding:13px 16px;border-radius:11px;text-align:left;cursor:pointer;font-family:'Nunito',sans-serif;font-size:.93rem;transition:all .2s}
+  .option:hover{background:rgba(245,166,35,.08);border-color:var(--accent);transform:translateX(4px)}
+  .option.correct{background:rgba(0,255,136,.13);border-color:var(--green);color:var(--green)}
+  .option.wrong{background:rgba(255,59,92,.12);border-color:var(--red);color:var(--red)}
+  .option:disabled{cursor:not-allowed}
+  .feedback{margin-top:12px;padding:13px;border-radius:11px;font-size:.88rem;line-height:1.5;display:none}
+  .feedback.show{display:block;animation:fadeIn .3s}
+  .feedback.correct{background:rgba(0,255,136,.08);border-left:4px solid var(--green)}
+  .feedback.wrong{background:rgba(255,59,92,.08);border-left:4px solid var(--red)}
+  .next-btn{margin-top:12px;width:100%;padding:13px;border:none;border-radius:11px;background:linear-gradient(135deg,var(--accent),var(--gold));color:#0c0a00;font-weight:800;cursor:pointer;font-family:'Teko',sans-serif;letter-spacing:2px;display:none;font-size:1.1rem}
+  .next-btn.show{display:block}
+  .flash-stage{perspective:1200px;margin:10px 0 16px}
+  .flash-card{position:relative;width:100%;height:270px;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.4,0,.2,1);cursor:pointer}
+  .flash-card.flipped{transform:rotateY(180deg)}
+  .flash-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:18px;padding:22px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;border:1px solid rgba(255,255,255,.12)}
+  .flash-front{background:linear-gradient(135deg,rgba(245,166,35,.2),rgba(255,215,0,.12));box-shadow:0 18px 50px rgba(245,166,35,.18)}
+  .flash-back{background:linear-gradient(135deg,rgba(168,197,218,.18),rgba(0,255,136,.1));transform:rotateY(180deg);box-shadow:0 18px 50px rgba(168,197,218,.15)}
+  .flash-label{font-family:'Share Tech Mono',monospace;font-size:.68rem;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:12px;opacity:.9}
+  .flash-back .flash-label{color:var(--steel)}
+  .flash-term{font-family:'Teko',sans-serif;font-weight:700;font-size:clamp(1.5rem,5vw,2.2rem);line-height:1.1;background:linear-gradient(135deg,#fff,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:8px}
+  .flash-formula{font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--steel);background:rgba(0,0,0,.35);padding:7px 13px;border-radius:7px;margin-top:7px}
+  .flash-def{font-size:.96rem;line-height:1.55;color:var(--text);max-width:92%}
+  .flash-example{margin-top:12px;font-size:.8rem;color:var(--muted);font-style:italic;line-height:1.4}
+  .flash-tap{position:absolute;bottom:12px;font-size:.68rem;color:var(--muted);font-family:'Share Tech Mono',monospace;letter-spacing:1px}
+  .flash-nav{display:flex;gap:10px;align-items:center;justify-content:space-between}
+  .flash-arrow{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);color:var(--text);width:46px;height:46px;border-radius:50%;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+  .flash-arrow:hover{background:var(--gold);color:#0c0a00;transform:scale(1.05)}
+  .flash-arrow:disabled{opacity:.3;cursor:not-allowed}
+  .flash-progress{flex:1;background:rgba(255,255,255,.06);height:5px;border-radius:3px;overflow:hidden}
+  .flash-progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--gold));transition:width .3s}
+  .flash-counter{font-family:'Share Tech Mono',monospace;font-size:.77rem;color:var(--muted);text-align:center;margin-top:9px}
+  .flash-mark{margin-top:13px;display:flex;gap:8px}
+  .mark-btn{flex:1;padding:10px;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:700;font-size:.83rem;cursor:pointer;transition:transform .15s}
+  .mark-btn:active{transform:scale(.96)}
+  .mark-known{background:rgba(0,255,136,.12);color:var(--green);border:1px solid var(--green)}
+  .mark-review{background:rgba(255,59,92,.11);color:var(--red);border:1px solid var(--red)}
+  .mat-toggle{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap}
+  .mat-btn{flex:1;min-width:fit-content;padding:9px 12px;border:2px solid rgba(255,255,255,.1);border-radius:10px;background:transparent;color:var(--muted);cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;font-size:.85rem;transition:all .2s;white-space:nowrap}
+  .mat-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(245,166,35,.1)}
+  .sim-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+  .control{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);padding:11px;border-radius:11px}
+  .control label{display:block;font-family:'Share Tech Mono',monospace;font-size:.68rem;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
+  .control input[type=range]{width:100%;accent-color:var(--gold)}
+  .control .val{font-family:'Teko',sans-serif;font-weight:600;color:var(--gold);font-size:1.1rem}
+  #three-container canvas{display:block}
+  .sim-buttons{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+  .sim-btn{flex:1;min-width:90px;padding:11px;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:700;cursor:pointer;transition:transform .15s}
+  .sim-btn:active{transform:scale(.96)}
+  .btn-apply{background:var(--accent);color:#0c0a00}
+  .btn-reset{background:rgba(255,255,255,.09);color:var(--text)}
+  .readout{margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:7px}
+  .read-card{background:rgba(245,166,35,.07);border:1px solid rgba(245,166,35,.18);border-radius:10px;padding:9px;text-align:center}
+  .read-card .lbl{font-size:.67rem;color:var(--accent);font-family:'Share Tech Mono',monospace}
+  .read-card .num{font-family:'Teko',sans-serif;font-weight:600;font-size:1rem;color:var(--text)}
+  .graph-wrap{margin-top:14px;background:rgba(0,0,0,.35);border:1px solid rgba(245,166,35,.2);border-radius:12px;padding:10px}
+  .graph-title{font-family:'Share Tech Mono',monospace;font-size:.72rem;color:var(--accent);letter-spacing:1px;margin-bottom:6px;text-transform:uppercase}
+  #ss-canvas{width:100%;height:160px;display:block;border-radius:6px}
+  .match-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .match-card{background:rgba(255,255,255,.05);border:2px solid rgba(255,255,255,.09);padding:13px;border-radius:11px;cursor:pointer;font-size:.83rem;text-align:center;min-height:66px;display:flex;align-items:center;justify-content:center;transition:all .2s}
+  .match-card:hover{border-color:var(--accent)}
+  .match-card.selected{border-color:var(--gold);background:rgba(255,215,0,.12)}
+  .match-card.matched{background:rgba(0,255,136,.12);border-color:var(--green);color:var(--green);cursor:default;opacity:.75}
+  .match-card.wrong{background:rgba(255,59,92,.11);border-color:var(--red);animation:shake .3s}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+  .reset-link{display:block;text-align:center;margin-top:16px;color:var(--muted);font-size:.83rem;cursor:pointer;text-decoration:underline;background:none;border:none;width:100%}
+  .win-overlay{position:fixed;inset:0;background:rgba(12,10,0,.95);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+  .win-overlay.show{display:flex;animation:fadeIn .4s}
+  .win-card{background:linear-gradient(135deg,var(--accent),var(--gold));color:#0c0a00;padding:28px;border-radius:18px;text-align:center;max-width:320px}
+  .win-card h2{font-family:'Teko',sans-serif;font-weight:700;font-size:2.2rem;margin-bottom:8px;letter-spacing:2px}
+  .win-card button{margin-top:14px;padding:11px 26px;border:none;border-radius:10px;background:#0c0a00;color:var(--gold);font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1 class="title">SOLID BREAKER</h1>
+    <div class="subtitle">// Class 11 Physics · Mechanical Properties of Solids</div>
+    <div class="stats">
+      <div class="stat">SCORE <strong id="score">0</strong></div>
+      <div class="stat">STREAK <strong id="streak">0</strong>🔥</div>
+      <div class="stat">LEVEL <strong id="level">1</strong></div>
+    </div>
+  </header>
+  <div class="tabs">
+    <button class="tab active" data-tab="quiz">🧠 Quiz</button>
+    <button class="tab" data-tab="flash">🎴 Cards</button>
+    <button class="tab" data-tab="sim">🔩 Stress Lab</button>
+    <button class="tab" data-tab="match">🔗 Match</button>
+  </div>
+  <section class="panel active" id="quiz">
+    <h2>BRAIN BOOST</h2>
+    <p class="panel-sub">Test your knowledge of mechanical properties — +10 per correct answer!</p>
+    <div id="quiz-box"></div>
+  </section>
+  <section class="panel" id="flash">
+    <h2>FLASH CARDS</h2>
+    <p class="panel-sub">Tap to flip. Definitions, formulas and examples all in one place.</p>
+    <div class="flash-stage">
+      <div class="flash-card" id="flash-card">
+        <div class="flash-face flash-front"><div class="flash-label">CONCEPT</div><div class="flash-term" id="f-term">Loading…</div><div class="flash-tap">tap to flip ↻</div></div>
+        <div class="flash-face flash-back"><div class="flash-label">EXPLANATION</div><div class="flash-def" id="f-def"></div><div class="flash-formula" id="f-formula"></div><div class="flash-example" id="f-example"></div><div class="flash-tap">tap to flip back ↺</div></div>
+      </div>
+    </div>
+    <div class="flash-nav">
+      <button class="flash-arrow" id="f-prev">←</button>
+      <div class="flash-progress"><div class="flash-progress-bar" id="f-bar"></div></div>
+      <button class="flash-arrow" id="f-next">→</button>
+    </div>
+    <div class="flash-counter" id="f-counter">1 / 12</div>
+    <div class="flash-mark">
+      <button class="mark-btn mark-review" id="f-review">🔁 Need Review</button>
+      <button class="mark-btn mark-known" id="f-known">✓ Got It (+5)</button>
+    </div>
+  </section>
+  <section class="panel" id="sim">
+    <h2>STRESS-STRAIN LAB — 3D</h2>
+    <p class="panel-sub">Apply tensile force to a rod. Watch it deform, enter plastic zone, and break. <span style="color:var(--gold)">Drag to rotate</span></p>
+    <div class="mat-toggle">
+      <button class="mat-btn active" id="btn-steel">🔧 Steel</button>
+      <button class="mat-btn" id="btn-rubber">🟡 Rubber</button>
+      <button class="mat-btn" id="btn-bone">🦴 Bone</button>
+      <button class="mat-btn" id="btn-copper">🟠 Copper</button>
+    </div>
+    <div class="sim-controls">
+      <div class="control"><label>Applied Force (F)</label><input type="range" id="force" min="0" max="100" value="0" step="1"><div><span class="val" id="force-val">0</span> <span style="color:var(--muted);font-size:.75rem">% of UTS</span></div></div>
+      <div class="control"><label>Cross-section Area</label><input type="range" id="area" min="1" max="10" value="4" step="0.5"><div><span class="val" id="area-val">4</span> <span style="color:var(--muted);font-size:.75rem">cm²</span></div></div>
+      <div class="control"><label>Rod Length (L)</label><input type="range" id="rodlen" min="1" max="5" value="2" step="0.1"><div><span class="val" id="rodlen-val">2</span> <span style="color:var(--muted);font-size:.75rem">m</span></div></div>
+    </div>
+    <div id="three-container" style="width:100%;height:390px;border-radius:16px;overflow:hidden;border:1px solid rgba(245,166,35,.2);background:radial-gradient(ellipse at 50% 35%,#1a1000 0%,#0c0a00 100%);position:relative;cursor:grab;touch-action:none"></div>
+    <div class="sim-buttons">
+      <button class="sim-btn btn-apply" id="apply-btn">↺ Reset Rod</button>
+      <button class="sim-btn btn-reset" id="reset-btn">🔧 Change Material</button>
+    </div>
+    <div class="readout">
+      <div class="read-card"><div class="lbl">Stress σ</div><div class="num" id="r-stress">0 MPa</div></div>
+      <div class="read-card"><div class="lbl">Strain ε</div><div class="num" id="r-strain">0</div></div>
+      <div class="read-card"><div class="lbl">Extension ΔL</div><div class="num" id="r-ext">0 mm</div></div>
+      <div class="read-card"><div class="lbl">Young's E</div><div class="num" id="r-young">— GPa</div></div>
+      <div class="read-card"><div class="lbl">Zone</div><div class="num" id="r-zone" style="font-size:.85rem">Elastic</div></div>
+    </div>
+    <div class="graph-wrap">
+      <div class="graph-title">Stress vs Strain Curve (Live)</div>
+      <canvas id="ss-canvas"></canvas>
+    </div>
+    <p style="margin-top:12px;font-size:.77rem;color:var(--muted);text-align:center;font-family:'Share Tech Mono',monospace">Stress σ = F/A &nbsp;|&nbsp; Strain ε = ΔL/L &nbsp;|&nbsp; Young's Modulus E = σ/ε</p>
+  </section>
+  <section class="panel" id="match">
+    <h2>CONCEPT MATCH</h2>
+    <p class="panel-sub">Match each term with its correct meaning</p>
+    <div class="match-grid" id="match-grid"></div>
+    <button class="reset-link" id="match-reset">↺ Restart match game</button>
+  </section>
+</div>
+<div class="win-overlay" id="win">
+  <div class="win-card">
+    <h2>💪 LEVEL UP!</h2>
+    <p id="win-msg">Solid performance!</p>
+    <button onclick="document.getElementById('win').classList.remove('show')">Continue</button>
+  </div>
+</div>
+<script>
+let score=0,streak=0,level=1;
+function updateStats(){document.getElementById('score').textContent=score;document.getElementById('streak').textContent=streak;document.getElementById('level').textContent=level;const nl=Math.floor(score/50)+1;if(nl>level){level=nl;showWin('Level '+nl+' unlocked! 💪');}}
+function showWin(msg){document.getElementById('win-msg').textContent=msg;document.getElementById('win').classList.add('show');}
+document.querySelectorAll('.tab').forEach(t=>{t.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));t.classList.add('active');document.getElementById(t.dataset.tab).classList.add('active');});});
+const questions=[
+  {q:'Stress is defined as:',opts:['Change in length / Original length','Force applied / Cross-sectional area','Young\'s modulus × Strain','Energy stored per unit volume'],correct:1,explain:'Stress σ = F/A. It measures the internal force per unit area within a material. SI unit: Pascal (Pa) = N/m².'},
+  {q:'Strain is defined as:',opts:['Force per unit area','Change in length / Original length','Stress / Young\'s Modulus','Restoring force'],correct:1,explain:'Strain ε = ΔL/L₀. It is dimensionless (no unit) — just a ratio of deformation to original size.'},
+  {q:"Young's Modulus (E) is the ratio of:",opts:['Stress to Strain','Strain to Stress','Force to Area','Extension to Force'],correct:0,explain:'E = Stress/Strain = (F/A)/(ΔL/L). It measures the stiffness of a material. Higher E = stiffer material.'},
+  {q:'Which material has the highest Young\'s Modulus?',opts:['Rubber','Bone','Steel','Copper'],correct:2,explain:'Steel E ≈ 200 GPa, Copper ≈ 120 GPa, Bone ≈ 14 GPa, Rubber ≈ 0.01–0.1 GPa. Steel is stiffest.'},
+  {q:"Hooke's Law states that:",opts:['Stress is constant','Stress ∝ Strain (within elastic limit)','Strain ∝ Area','Force ∝ Volume'],correct:1,explain:"Hooke's Law: Within the elastic limit, stress is directly proportional to strain. σ = Eε."},
+  {q:'The elastic limit is the point beyond which:',opts:['The material breaks immediately','Stress equals zero','The material does not return to original shape','Young\'s Modulus increases'],correct:2,explain:'Beyond the elastic limit, the material undergoes permanent (plastic) deformation — it does not return to its original shape when force is removed.'},
+  {q:'The SI unit of stress is:',opts:['Newton (N)','Joule (J)','Pascal (Pa)','Watt (W)'],correct:2,explain:'Stress = Force/Area = N/m² = Pascal (Pa). In practice, MPa (10⁶ Pa) and GPa (10⁹ Pa) are used.'},
+  {q:'Shear modulus relates:',opts:['Tensile stress to tensile strain','Shear stress to shear strain','Pressure to volume change','Extension to force'],correct:1,explain:'Shear modulus G = Shear Stress / Shear Strain. It measures resistance to change in shape (not volume).'},
+  {q:'Bulk modulus is associated with:',opts:['Change in shape','Change in length','Change in volume due to pressure','Shear deformation'],correct:2,explain:'Bulk modulus K = Pressure / Volumetric strain = −P/(ΔV/V). It measures resistance to compression.'},
+  {q:"Poisson's ratio is the ratio of:",opts:['Longitudinal strain to lateral strain','Lateral strain to longitudinal strain','Stress to strain','Young\'s modulus to Shear modulus'],correct:1,explain:"Poisson's ratio ν = −(lateral strain)/(longitudinal strain). When stretched, materials typically contract sideways. ν is between 0 and 0.5 for most materials."}
+];
+let qIdx=0;
+function renderQuestion(){
+  if(qIdx>=questions.length)qIdx=0;const q=questions[qIdx];
+  document.getElementById('quiz-box').innerHTML=`<div class="question-box"><div class="q-meta">QUESTION ${qIdx+1} / ${questions.length}</div><div class="q-text">${q.q}</div></div><div class="options">${q.opts.map((o,i)=>`<button class="option" data-i="${i}">${String.fromCharCode(65+i)}. ${o}</button>`).join('')}</div><div class="feedback" id="fb"></div><button class="next-btn" id="next">Next Question →</button>`;
+  document.querySelectorAll('.option').forEach(b=>b.addEventListener('click',()=>handleAnswer(b)));
+  document.getElementById('next').addEventListener('click',()=>{qIdx++;renderQuestion();});
+}
+function handleAnswer(btn){
+  const i=parseInt(btn.dataset.i),q=questions[qIdx],fb=document.getElementById('fb');
+  document.querySelectorAll('.option').forEach(b=>b.disabled=true);
+  if(i===q.correct){btn.classList.add('correct');fb.classList.add('show','correct');fb.innerHTML=`✅ <strong>Correct!</strong> ${q.explain}`;score+=10;streak++;if(streak%3===0&&streak>0)score+=5;}
+  else{btn.classList.add('wrong');document.querySelectorAll('.option')[q.correct].classList.add('correct');fb.classList.add('show','wrong');fb.innerHTML=`❌ <strong>Incorrect.</strong> ${q.explain}`;streak=0;}
+  updateStats();document.getElementById('next').classList.add('show');
+}
+renderQuestion();
+const flashcards=[
+  {term:'Stress (σ)',def:'The internal restoring force per unit cross-sectional area of a material when an external force is applied. A measure of how hard the material is being "pulled" or "pushed".',formula:'σ = F / A  (Unit: Pa = N/m²)',example:'A 10 kN force on 2 cm² area → σ = 10000/0.0002 = 50 MPa'},
+  {term:'Strain (ε)',def:'The fractional change in the dimension of a body due to applied stress. It is dimensionless — just a pure ratio.',formula:'ε = ΔL / L₀  (no unit)',example:'A 2 m rod stretches by 2 mm → ε = 0.002/2 = 0.001'},
+  {term:"Young's Modulus (E)",def:'A measure of the stiffness (resistance to elastic deformation) of a solid material under tensile or compressive stress. Higher E = stiffer material.',formula:'E = σ / ε = (F·L) / (A·ΔL)  (Unit: GPa)',example:'Steel E ≈ 200 GPa, Rubber E ≈ 0.01 GPa'},
+  {term:"Hooke's Law",def:'Within the elastic limit, the extension (strain) of a material is directly proportional to the applied force (stress). The material behaves like a spring.',formula:'σ = E·ε  (F = k·x for spring)',example:'Doubling the force doubles the extension — only up to the elastic limit'},
+  {term:'Elastic Limit',def:'The maximum stress beyond which a material will not return to its original shape after the load is removed. Below this point: elastic behaviour. Above: plastic deformation.',formula:'Point P on stress-strain curve',example:'Stretching a rubber band just a little — it springs back. Stretch too far — permanent deformation'},
+  {term:'Elastic Deformation',def:'Reversible deformation — the material returns to its original shape once the force is removed. Obeys Hooke\'s Law in this region.',formula:'ε fully recovers when σ = 0',example:'Compressing a spring, stretching a rubber band slightly'},
+  {term:'Plastic Deformation',def:'Permanent, irreversible deformation that occurs when stress exceeds the elastic limit. The material does not return to its original shape.',formula:'Occurs beyond yield point',example:'Bending a copper wire — it stays bent even after force removed'},
+  {term:'Ultimate Tensile Strength',def:'The maximum stress a material can withstand before it starts to neck (thin locally) and eventually fractures.',formula:'Peak of stress-strain curve',example:'Steel UTS ≈ 400–550 MPa, Bone ≈ 130 MPa'},
+  {term:'Shear Modulus (G)',def:'Also called modulus of rigidity. Measures resistance to shear deformation — change in shape without change in volume.',formula:'G = Shear Stress / Shear Strain',example:'Twisting a rod or sliding layers of a material past each other'},
+  {term:'Bulk Modulus (K)',def:'Measures a material\'s resistance to uniform compression. The reciprocal is called compressibility.',formula:'K = −V · (dP/dV) = P/(−ΔV/V)',example:'Water K ≈ 2.2 GPa, Steel K ≈ 160 GPa — steel far less compressible'},
+  {term:"Poisson's Ratio (ν)",def:'When a material is stretched in one direction, it tends to contract in the other two directions. Poisson\'s ratio measures this effect.',formula:'ν = −(lateral strain) / (axial strain)',example:'Most metals: ν ≈ 0.25–0.35. Rubber: ν ≈ 0.5 (nearly incompressible)'},
+  {term:'Elastic Potential Energy',def:'The energy stored in a deformed elastic material. Equal to the area under the stress-strain curve up to that point.',formula:'U = (1/2)·σ·ε·Volume = F²L/(2AE)',example:'A stretched spring stores PE = (1/2)kx². Same idea for rods.'}
+];
+let fIdx=0,fKnown=new Set();
+function renderFlash(){
+  const c=flashcards[fIdx];
+  document.getElementById('f-term').textContent=c.term;document.getElementById('f-def').textContent=c.def;document.getElementById('f-formula').textContent=c.formula;document.getElementById('f-example').textContent='📌 '+c.example;
+  document.getElementById('flash-card').classList.remove('flipped');document.getElementById('f-counter').textContent=`${fIdx+1} / ${flashcards.length}`;document.getElementById('f-bar').style.width=`${((fIdx+1)/flashcards.length)*100}%`;
+  document.getElementById('f-prev').disabled=fIdx===0;document.getElementById('f-next').disabled=fIdx===flashcards.length-1;
+}
+document.getElementById('flash-card').addEventListener('click',e=>e.currentTarget.classList.toggle('flipped'));
+document.getElementById('f-prev').addEventListener('click',e=>{e.stopPropagation();if(fIdx>0){fIdx--;renderFlash();}});
+document.getElementById('f-next').addEventListener('click',e=>{e.stopPropagation();if(fIdx<flashcards.length-1){fIdx++;renderFlash();}});
+document.getElementById('f-known').addEventListener('click',e=>{e.stopPropagation();if(!fKnown.has(fIdx)){fKnown.add(fIdx);score+=5;streak++;updateStats();if(fKnown.size===flashcards.length){showWin('All cards mastered! 🏆 +25 bonus');score+=25;updateStats();}}if(fIdx<flashcards.length-1){fIdx++;renderFlash();}});
+document.getElementById('f-review').addEventListener('click',e=>{e.stopPropagation();if(fIdx<flashcards.length-1){fIdx++;renderFlash();}else{fIdx=0;renderFlash();}});
+renderFlash();
+const materials={
+  steel:{name:'Steel',E:200,yield:250,uts:500,fracture:0.20,color:0xa8c5da,emissive:0x223344,plasticity:0.55},
+  rubber:{name:'Rubber',E:0.05,yield:5,uts:15,fracture:3.5,color:0xf5c518,emissive:0x443300,plasticity:0.05},
+  bone:{name:'Bone',E:14,yield:100,uts:130,fracture:0.025,color:0xf0e6c8,emissive:0x332211,plasticity:0.18},
+  copper:{name:'Copper',E:120,yield:70,uts:220,fracture:0.30,color:0xd4660a,emissive:0x441a00,plasticity:0.75}
+};
+let currentMat='steel',ssHistory=[],broken=false;
+function getMat(){return materials[currentMat];}
+function getForcePercent(){return parseFloat(document.getElementById('force').value);}
+function getArea(){return parseFloat(document.getElementById('area').value)*1e-4;}
+function getRodLen(){return parseFloat(document.getElementById('rodlen').value);}
+function calcStress(){const mat=getMat(),pct=getForcePercent()/100,A=getArea(),F=pct*mat.uts*1e6*A*1.1,stress=F/A/1e6;return Math.min(stress,mat.uts*1.1);}
+function calcStressStrain(){
+  const mat=getMat(),stress=calcStress(),E=mat.E*1000,L=getRodLen();
+  let strain,zone;
+  if(stress<=mat.yield){strain=stress/E;zone='Elastic';}
+  else if(stress<mat.uts){const elasticStrain=mat.yield/E,t=(stress-mat.yield)/(mat.uts-mat.yield),plasticExtra=(mat.fracture-elasticStrain)*mat.plasticity*Math.pow(t,0.6);strain=elasticStrain+plasticExtra;zone='Plastic';}
+  else{strain=mat.fracture;zone='⚠ FRACTURE';broken=true;}
+  const deltaL=strain*L*1000,A=getArea(),F_kN=stress*1e6*A/1000;
+  return{stress,strain,deltaL,zone,E:mat.E,F_kN};
+}
+const threeContainer=document.getElementById('three-container');
+let scene,camera,renderer;
+let cameraAngle=0.3,cameraTilt=0.3,cameraDist=14;
+let sceneObjects=[],rodMesh=null,rightClamp=null,forceArrowL=null,forceArrowR=null,crackMeshes=[];
+const rodBaseLen=6;
+function addToScene(obj){scene.add(obj);sceneObjects.push(obj);return obj;}
+function clearSceneObjects(){sceneObjects.forEach(o=>scene.remove(o));sceneObjects=[];rodMesh=null;rightClamp=null;forceArrowL=null;forceArrowR=null;crackMeshes=[];}
+function initThree(){
+  scene=new THREE.Scene();const w=threeContainer.clientWidth||threeContainer.offsetWidth||window.innerWidth||360;const h=threeContainer.clientHeight||threeContainer.offsetHeight||400;
+  camera=new THREE.PerspectiveCamera(46,w/h,0.1,200);
+  renderer=new THREE.WebGLRenderer({antialias:false,alpha:true});renderer.setSize(w,h);renderer.setPixelRatio(1);threeContainer.appendChild(renderer.domElement);
+  scene.add(new THREE.AmbientLight(0xffffff,0.5));
+  const sun=new THREE.DirectionalLight(0xffe0a0,1.3);sun.position.set(6,12,8);scene.add(sun);
+  const pl1=new THREE.PointLight(0xf5a623,1.0,30);pl1.position.set(-7,4,5);scene.add(pl1);
+  const pl2=new THREE.PointLight(0xa8c5da,0.7,25);pl2.position.set(5,2,-6);scene.add(pl2);
+  const grid=new THREE.GridHelper(30,30,0x332200,0x221100);grid.position.y=-2.5;grid.material.opacity=0.4;grid.material.transparent=true;scene.add(grid);
+  let dragging=false,lastX=0,lastY=0;
+  threeContainer.addEventListener('pointerdown',e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;threeContainer.style.cursor='grabbing';});
+  window.addEventListener('pointermove',e=>{if(!dragging)return;cameraAngle-=(e.clientX-lastX)*0.009;cameraTilt=Math.max(0.05,Math.min(1.3,cameraTilt-(e.clientY-lastY)*0.005));lastX=e.clientX;lastY=e.clientY;updateCamera();});
+  window.addEventListener('pointerup',()=>{dragging=false;threeContainer.style.cursor='grab';});
+  window.addEventListener('resize',()=>{if(!threeContainer.clientWidth)return;camera.aspect=threeContainer.clientWidth/threeContainer.clientHeight;camera.updateProjectionMatrix();renderer.setSize(threeContainer.clientWidth,threeContainer.clientHeight);});
+  updateCamera();buildRod();animLoop();
+}
+function updateCamera(){camera.position.x=Math.sin(cameraAngle)*cameraDist;camera.position.z=Math.cos(cameraAngle)*cameraDist;camera.position.y=1.5+cameraTilt*8;camera.lookAt(0,0,0);}
+function buildRod(){
+  clearSceneObjects();broken=false;const mat=getMat();
+  const R=0.38;
+  const rodGeo=new THREE.CylinderGeometry(R,R,rodBaseLen,32);rodGeo.rotateZ(Math.PI/2);
+  rodMesh=addToScene(new THREE.Mesh(rodGeo,new THREE.MeshStandardMaterial({color:mat.color,emissive:mat.emissive,emissiveIntensity:.35,metalness:.65,roughness:.3})));rodMesh.castShadow=true;
+  const clampMat=new THREE.MeshStandardMaterial({color:0x666666,metalness:.85,roughness:.2});
+  const leftClamp=addToScene(new THREE.Mesh(new THREE.BoxGeometry(0.55,1.7,1.5),clampMat));leftClamp.position.set(-rodBaseLen/2-0.28,0,0);leftClamp.castShadow=true;
+  addToScene(new THREE.Mesh(new THREE.BoxGeometry(0.2,2.5,2.2),new THREE.MeshStandardMaterial({color:0x444444,metalness:.7,roughness:.4}))).position.set(-rodBaseLen/2-0.7,0,0);
+  rightClamp=addToScene(new THREE.Mesh(new THREE.BoxGeometry(0.55,1.7,1.5),clampMat.clone()));rightClamp.position.set(rodBaseLen/2+0.28,0,0);rightClamp.castShadow=true;
+  const boltGeo=new THREE.CylinderGeometry(0.07,0.07,1.7,8),boltMat=new THREE.MeshStandardMaterial({color:0x999999,metalness:.95,roughness:.05});
+  [[-0.18,0.5],[-0.18,-0.5],[0.18,0.5],[0.18,-0.5]].forEach(([bz,by])=>{
+    const b1=addToScene(new THREE.Mesh(boltGeo,boltMat));b1.rotation.x=Math.PI/2;b1.position.set(-rodBaseLen/2-0.28,by,bz);
+    const b2=addToScene(new THREE.Mesh(boltGeo,boltMat));b2.rotation.x=Math.PI/2;b2.position.set(rodBaseLen/2+0.28,by,bz);
+  });
+  forceArrowL=addToScene(buildArrow(0xff3b5c));forceArrowL.visible=false;
+  forceArrowR=addToScene(buildArrow(0xff3b5c));forceArrowR.visible=false;
+}
+function buildArrow(color){
+  const group=new THREE.Group(),mat=new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:.6});
+  const shaft=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,1.4,12),mat);shaft.position.y=0.7;group.add(shaft);
+  const head=new THREE.Mesh(new THREE.ConeGeometry(0.17,0.42,12),mat);head.position.y=1.55;group.add(head);
+  return group;
+}
+function updateRodVisual(strain,stress){
+  if(!rodMesh||!rightClamp)return;
+  const mat=getMat(),maxVisExt=3.5,extension=(strain/mat.fracture)*maxVisExt;
+  const poisson=0.3,axialScale=1+extension/rodBaseLen,latScale=Math.max(0.25,1-poisson*(extension/rodBaseLen));
+  rodMesh.scale.set(axialScale,latScale,latScale);
+  rightClamp.position.x=rodBaseLen/2+0.28+extension;
+  sceneObjects.forEach(obj=>{if(obj.geometry&&obj.geometry.type==='CylinderGeometry'&&obj!==rodMesh&&obj.position.x>0&&Math.abs(obj.position.x-rodBaseLen/2-0.28)<0.5)obj.position.x=rodBaseLen/2+0.28+extension;});
+  const t=Math.min(1,(stress-mat.yield)/Math.max(1,mat.uts-mat.yield));
+  let col,emissive,emissInt;
+  if(stress<mat.yield){col=new THREE.Color(mat.color);emissive=new THREE.Color(mat.emissive);emissInt=.35;}
+  else if(stress<mat.uts){col=new THREE.Color().lerpColors(new THREE.Color(mat.color),new THREE.Color(0xdd4400),t);emissive=new THREE.Color(0x881100);emissInt=0.4+t*0.5;}
+  else{col=new THREE.Color(0xff1100);emissive=new THREE.Color(0xff0000);emissInt=1.0;}
+  rodMesh.material.color.set(col);rodMesh.material.emissive.set(emissive);rodMesh.material.emissiveIntensity=emissInt;
+  const pct=getForcePercent();
+  if(pct>1&&!broken){
+    forceArrowL.visible=true;forceArrowR.visible=true;
+    const arrowScale=0.6+pct/100*1.4;
+    forceArrowL.rotation.z=-Math.PI/2;forceArrowL.position.set(-rodBaseLen/2-0.3-0.3,0,0);forceArrowL.scale.setScalar(arrowScale);
+    forceArrowR.rotation.z=Math.PI/2;forceArrowR.position.set(rodBaseLen/2+0.28+extension+0.3,0,0);forceArrowR.scale.setScalar(arrowScale);
+  }else{forceArrowL.visible=false;forceArrowR.visible=false;}
+  if(stress>=mat.uts)spawnCrack();
+}
+function spawnCrack(){
+  if(crackMeshes.length>=10||Math.random()>0.15)return;
+  const crack=new THREE.Mesh(new THREE.PlaneGeometry(0.06,0.85+Math.random()*0.4),new THREE.MeshBasicMaterial({color:0xff2200,side:THREE.DoubleSide,transparent:true,opacity:0.9}));
+  const xPos=(Math.random()-0.5)*rodBaseLen*0.8;crack.position.set(xPos,(Math.random()-0.5)*0.3,Math.random()>.5?0.4:-0.4);crack.rotation.set(Math.random()*0.4-0.2,Math.PI/2,Math.random()*0.3-0.15);addToScene(crack);crackMeshes.push(crack);
+}
+const ssCanvas=document.getElementById('ss-canvas'),ssCtx=ssCanvas.getContext('2d');
+function drawSSGraph(){
+  const rect=ssCanvas.getBoundingClientRect(),W=ssCanvas.width=Math.max(300,rect.width||ssCanvas.parentElement.clientWidth||400),H=ssCanvas.height=160;
+  ssCtx.clearRect(0,0,W,H);const mat=getMat(),E=mat.E*1000,padL=52,padB=28,padR=12,padT=12,gW=W-padL-padR,gH=H-padB-padT;
+  const maxStrain=mat.fracture*1.08,maxStress=mat.uts*1.18;
+  const toX=s=>padL+(s/maxStrain)*gW,toY=s=>padT+gH-(s/maxStress)*gH;
+  ssCtx.fillStyle='rgba(10,5,0,0.6)';ssCtx.fillRect(padL,padT,gW,gH);
+  ssCtx.strokeStyle='rgba(245,166,35,.1)';ssCtx.lineWidth=1;
+  for(let i=1;i<=4;i++){ssCtx.beginPath();ssCtx.moveTo(padL,padT+gH*i/4);ssCtx.lineTo(padL+gW,padT+gH*i/4);ssCtx.stroke();ssCtx.beginPath();ssCtx.moveTo(padL+gW*i/4,padT);ssCtx.lineTo(padL+gW*i/4,padT+gH);ssCtx.stroke();}
+  ssCtx.strokeStyle='rgba(245,166,35,.6)';ssCtx.lineWidth=2;ssCtx.beginPath();ssCtx.moveTo(padL,padT);ssCtx.lineTo(padL,padT+gH);ssCtx.lineTo(padL+gW,padT+gH);ssCtx.stroke();
+  ssCtx.fillStyle='#f5a623';ssCtx.font='bold 10px Share Tech Mono';ssCtx.save();ssCtx.translate(13,padT+gH/2);ssCtx.rotate(-Math.PI/2);ssCtx.textAlign='center';ssCtx.fillText('Stress (MPa)',0,0);ssCtx.restore();ssCtx.textAlign='center';ssCtx.fillText('Strain (ε)',padL+gW/2,H-3);ssCtx.textAlign='left';
+  ssCtx.fillStyle='rgba(245,166,35,.5)';ssCtx.font='9px Share Tech Mono';ssCtx.fillText(mat.uts.toFixed(0),2,toY(mat.uts)+4);ssCtx.fillText(mat.yield.toFixed(0),2,toY(mat.yield)+4);ssCtx.fillText((maxStrain).toFixed(3),toX(maxStrain)-14,H-5);
+  ssCtx.strokeStyle='rgba(168,197,218,.3)';ssCtx.lineWidth=1.5;ssCtx.setLineDash([4,4]);ssCtx.beginPath();let first=true;
+  for(let i=0;i<=100;i++){const strain=i/100*maxStrain;let stress;if(strain<=mat.yield/E){stress=strain*E;}else{const es=mat.yield/E,t=Math.min(1,(strain-es)/((mat.fracture-es)*mat.plasticity+0.0001));stress=mat.yield+(mat.uts-mat.yield)*Math.pow(t,0.55);}stress=Math.min(stress,mat.uts);if(first){ssCtx.moveTo(toX(strain),toY(stress));first=false;}else ssCtx.lineTo(toX(strain),toY(stress));}
+  ssCtx.stroke();ssCtx.setLineDash([]);
+  ssCtx.strokeStyle='rgba(0,255,136,.45)';ssCtx.lineWidth=1;ssCtx.setLineDash([3,3]);ssCtx.beginPath();ssCtx.moveTo(padL,toY(mat.yield));ssCtx.lineTo(padL+gW,toY(mat.yield));ssCtx.stroke();ssCtx.fillStyle='rgba(0,255,136,.75)';ssCtx.font='9px Share Tech Mono';ssCtx.fillText('Yield',padL+4,toY(mat.yield)-3);
+  ssCtx.strokeStyle='rgba(255,59,92,.45)';ssCtx.beginPath();ssCtx.moveTo(padL,toY(mat.uts));ssCtx.lineTo(padL+gW,toY(mat.uts));ssCtx.stroke();ssCtx.fillStyle='rgba(255,59,92,.75)';ssCtx.fillText('UTS',padL+4,toY(mat.uts)-3);ssCtx.setLineDash([]);
+  const elasticEnd=mat.yield/E;ssCtx.fillStyle='rgba(0,255,136,.18)';ssCtx.fillRect(padL,toY(mat.yield),toX(elasticEnd)-padL,toY(0)-toY(mat.yield));ssCtx.fillStyle='rgba(255,165,0,.12)';ssCtx.fillRect(toX(elasticEnd),toY(mat.uts),toX(maxStrain)-toX(elasticEnd),toY(mat.yield)-toY(mat.uts));
+  if(ssHistory.length>1){
+    ssCtx.strokeStyle='#f5a623';ssCtx.lineWidth=2.5;ssCtx.beginPath();
+    ssHistory.forEach((pt,idx)=>{const px=toX(Math.min(pt.strain,maxStrain)),py=toY(Math.min(pt.stress,maxStress));if(idx===0)ssCtx.moveTo(px,py);else ssCtx.lineTo(px,py);});
+    ssCtx.stroke();
+    const last=ssHistory[ssHistory.length-1],dotCol=last.zone==='Elastic'?'#00ff88':last.zone==='Plastic'?'#f5a623':'#ff3b5c';
+    ssCtx.fillStyle=dotCol;ssCtx.beginPath();ssCtx.arc(toX(Math.min(last.strain,maxStrain)),toY(Math.min(last.stress,maxStress)),5,0,Math.PI*2);ssCtx.fill();
+  }
+}
+function updateReadout(){
+  if(!threeReady)return;
+  const {stress,strain,deltaL,zone,E}=calcStressStrain();
+  document.getElementById('r-stress').textContent=stress.toFixed(1)+' MPa';document.getElementById('r-strain').textContent=strain.toFixed(5);document.getElementById('r-ext').textContent=deltaL.toFixed(3)+' mm';document.getElementById('r-young').textContent=E.toFixed(0)+' GPa';
+  const zoneEl=document.getElementById('r-zone');zoneEl.textContent=zone;zoneEl.style.color=zone==='Elastic'?'var(--green)':zone==='Plastic'?'var(--accent)':'var(--red)';
+  const last=ssHistory[ssHistory.length-1];if(!last||Math.abs(last.stress-stress)>0.3)ssHistory.push({stress,strain,zone});
+  updateRodVisual(strain,stress);drawSSGraph();
+}
+document.getElementById('force').addEventListener('input',e=>{document.getElementById('force-val').textContent=e.target.value;if(!broken)updateReadout();else if(parseInt(e.target.value)===0)broken=false;});
+document.getElementById('area').addEventListener('input',e=>{document.getElementById('area-val').textContent=e.target.value;resetRod();});
+document.getElementById('rodlen').addEventListener('input',e=>{document.getElementById('rodlen-val').textContent=e.target.value;resetRod();});
+Object.keys(materials).forEach(m=>{document.getElementById('btn-'+m).addEventListener('click',()=>{currentMat=m;document.querySelectorAll('.mat-btn').forEach(b=>b.classList.remove('active'));document.getElementById('btn-'+m).classList.add('active');resetRod();});});
+function resetRod(){broken=false;ssHistory=[];document.getElementById('force').value=0;document.getElementById('force-val').textContent='0';if(scene){buildRod();updateReadout();}}
+document.getElementById('apply-btn').addEventListener('click',resetRod);document.getElementById('reset-btn').addEventListener('click',resetRod);
+function animLoop(){requestAnimationFrame(animLoop);if(renderer&&scene&&camera)renderer.render(scene,camera);}
+let threeReady=false;
+function ensureThree(){if(threeReady)return;const w=threeContainer.clientWidth||threeContainer.offsetWidth;if(w===0){setTimeout(ensureThree,150);return;}threeReady=true;initThree();resetRod();}
+document.querySelector('.tab[data-tab="sim"]').addEventListener('click',()=>setTimeout(ensureThree,150));
+setTimeout(ensureThree,500);
+const pairs=[{term:'Stress σ = F/A',def:'Force per unit area'},{term:'Strain ε = ΔL/L',def:'Fractional change in length'},{term:"Young's Modulus",def:'Stress / Strain (stiffness)'},{term:'Elastic Limit',def:'Max stress before permanent deform'},{term:'Bulk Modulus',def:'Resistance to compression'},{term:"Poisson's Ratio",def:'Lateral strain / Axial strain'}];
+let matchSelected=null,matchedCount=0;
+function shuffle(a){return a.sort(()=>Math.random()-0.5);}
+function renderMatch(){
+  matchedCount=0;matchSelected=null;const grid=document.getElementById('match-grid'),items=[];
+  pairs.forEach((p,i)=>{items.push({type:'term',text:p.term,id:i});items.push({type:'def',text:p.def,id:i});});
+  shuffle(items);grid.innerHTML=items.map(it=>`<div class="match-card" data-type="${it.type}" data-id="${it.id}">${it.text}</div>`).join('');
+  grid.querySelectorAll('.match-card').forEach(c=>c.addEventListener('click',()=>handleMatch(c)));
+}
+function handleMatch(card){
+  if(card.classList.contains('matched'))return;
+  if(matchSelected===card){card.classList.remove('selected');matchSelected=null;return;}
+  if(!matchSelected){card.classList.add('selected');matchSelected=card;return;}
+  if(card.dataset.id===matchSelected.dataset.id&&card.dataset.type!==matchSelected.dataset.type){
+    card.classList.add('matched');matchSelected.classList.add('matched');matchSelected.classList.remove('selected');matchSelected=null;
+    matchedCount++;score+=8;streak++;updateStats();if(matchedCount===pairs.length){setTimeout(()=>showWin('All matched! +20 bonus 🎯'),400);score+=20;updateStats();}
+  }else{
+    card.classList.add('wrong');matchSelected.classList.add('wrong');streak=0;updateStats();
+    const prev=matchSelected;setTimeout(()=>{card.classList.remove('wrong','selected');prev.classList.remove('wrong','selected');},600);matchSelected=null;
+  }
+}
+document.getElementById('match-reset').addEventListener('click',renderMatch);
+renderMatch();
+</script>
+</body>
+</html>

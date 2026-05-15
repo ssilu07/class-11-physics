@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cosmic Pull — Gravitation Game</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@300;500;700;900&display=swap" rel="stylesheet">
+<script src="three.min.js"></script>
+<style>
+  :root{
+    --bg:#01010f;
+    --bg2:#0a0a2a;
+    --accent:#7209b7;
+    --gold:#ffba08;
+    --blue:#3a86ff;
+    --green:#06d6a0;
+    --text:#f1f5f9;
+    --muted:#94a3b8;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{overflow-x:hidden}
+  body{
+    font-family:'Inter',sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    min-height:100vh;
+    background-image:
+      radial-gradient(circle at 25% 20%, rgba(114,9,183,.25), transparent 45%),
+      radial-gradient(circle at 75% 80%, rgba(58,134,255,.18), transparent 45%),
+      radial-gradient(circle at 50% 50%, rgba(255,186,8,.08), transparent 50%);
+    padding:20px 16px 60px;
+  }
+  /* Star field */
+  body::before{
+    content:'';
+    position:fixed;inset:0;
+    background-image:
+      radial-gradient(1px 1px at 20px 30px, white, transparent),
+      radial-gradient(1px 1px at 60px 70px, white, transparent),
+      radial-gradient(1px 1px at 50px 160px, white, transparent),
+      radial-gradient(2px 2px at 130px 40px, rgba(255,255,255,0.6), transparent),
+      radial-gradient(1px 1px at 90px 120px, white, transparent),
+      radial-gradient(1px 1px at 170px 180px, white, transparent),
+      radial-gradient(2px 2px at 200px 90px, rgba(255,186,8,0.7), transparent),
+      radial-gradient(1px 1px at 240px 200px, white, transparent);
+    background-size:280px 280px;
+    background-repeat:repeat;
+    opacity:.35;
+    pointer-events:none;
+    z-index:0;
+    animation:twinkle 8s ease-in-out infinite;
+  }
+  @keyframes twinkle{0%,100%{opacity:.35}50%{opacity:.55}}
+  .container{position:relative;z-index:1;max-width:900px;margin:0 auto}
+
+  header{text-align:center;margin-bottom:28px;padding:20px 0}
+  .title{
+    font-family:'Orbitron',sans-serif;
+    font-weight:900;
+    font-size:clamp(2rem, 7vw, 3.6rem);
+    line-height:1;letter-spacing:4px;
+    background:linear-gradient(135deg, var(--gold), var(--accent), var(--blue));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    text-shadow:0 0 80px rgba(114,9,183,.4);
+  }
+  .subtitle{
+    font-family:'IBM Plex Mono',monospace;
+    color:var(--blue);font-size:.85rem;margin-top:8px;
+    letter-spacing:3px;text-transform:uppercase;
+  }
+  .stats{display:flex;justify-content:center;gap:16px;margin-top:18px;flex-wrap:wrap}
+  .stat{
+    background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.1);
+    border-radius:12px;padding:8px 16px;
+    font-family:'IBM Plex Mono',monospace;font-size:.8rem;
+  }
+  .stat strong{color:var(--gold);font-size:1rem}
+
+  .tabs{
+    display:flex;gap:8px;margin-bottom:24px;
+    background:rgba(255,255,255,.04);
+    padding:6px;border-radius:16px;
+    border:1px solid rgba(255,255,255,.08);
+    overflow-x:auto;
+  }
+  .tab{
+    flex:1;min-width:fit-content;padding:12px 14px;
+    border:none;background:transparent;
+    color:var(--muted);cursor:pointer;
+    font-family:'Inter',sans-serif;font-weight:700;font-size:.9rem;
+    border-radius:10px;transition:all .25s;white-space:nowrap;
+  }
+  .tab.active{
+    background:linear-gradient(135deg, var(--accent), var(--blue));
+    color:#fff;
+    box-shadow:0 4px 20px rgba(114,9,183,.5);
+  }
+
+  .panel{
+    background:rgba(255,255,255,.03);
+    border:1px solid rgba(255,255,255,.1);
+    border-radius:24px;padding:24px;
+    backdrop-filter:blur(10px);
+    display:none;animation:fadeIn .4s ease;
+  }
+  .panel.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  .panel h2{font-family:'Orbitron',sans-serif;font-weight:700;font-size:1.4rem;margin-bottom:8px;color:var(--gold);letter-spacing:2px}
+  .panel-sub{color:var(--muted);font-size:.9rem;margin-bottom:20px}
+
+  .question-box{
+    background:linear-gradient(135deg, rgba(114,9,183,.15), rgba(58,134,255,.08));
+    border:1px solid rgba(255,255,255,.1);
+    border-radius:16px;padding:20px;margin-bottom:16px;
+  }
+  .q-text{font-size:1.05rem;font-weight:500;line-height:1.5;margin-bottom:6px}
+  .q-meta{font-family:'IBM Plex Mono',monospace;font-size:.75rem;color:var(--blue);letter-spacing:1px}
+  .options{display:grid;gap:10px}
+  .option{
+    background:rgba(255,255,255,.05);
+    border:2px solid rgba(255,255,255,.1);
+    color:var(--text);padding:14px 18px;border-radius:12px;
+    text-align:left;cursor:pointer;
+    font-family:'Inter',sans-serif;font-size:.95rem;
+    transition:all .2s;
+  }
+  .option:hover{background:rgba(255,255,255,.08);border-color:var(--blue);transform:translateX(4px)}
+  .option.correct{background:rgba(6,214,160,.15);border-color:var(--green);color:var(--green)}
+  .option.wrong{background:rgba(114,9,183,.2);border-color:var(--accent);color:#c77dff}
+  .option:disabled{cursor:not-allowed}
+  .feedback{margin-top:14px;padding:14px;border-radius:12px;font-size:.9rem;line-height:1.5;display:none}
+  .feedback.show{display:block;animation:fadeIn .3s}
+  .feedback.correct{background:rgba(6,214,160,.1);border-left:4px solid var(--green)}
+  .feedback.wrong{background:rgba(114,9,183,.1);border-left:4px solid var(--accent)}
+  .next-btn{
+    margin-top:14px;width:100%;padding:14px;border:none;border-radius:12px;
+    background:linear-gradient(135deg, var(--accent), var(--blue));
+    color:#fff;font-weight:900;font-size:1rem;cursor:pointer;
+    font-family:'Orbitron',sans-serif;letter-spacing:2px;display:none;
+  }
+  .next-btn.show{display:block}
+
+  /* FLASHCARDS */
+  .flash-stage{perspective:1200px;margin:10px 0 18px}
+  .flash-card{
+    position:relative;width:100%;height:280px;
+    transform-style:preserve-3d;
+    transition:transform .6s cubic-bezier(.4,0,.2,1);
+    cursor:pointer;
+  }
+  .flash-card.flipped{transform:rotateY(180deg)}
+  .flash-face{
+    position:absolute;inset:0;
+    backface-visibility:hidden;-webkit-backface-visibility:hidden;
+    border-radius:20px;padding:24px;
+    display:flex;flex-direction:column;
+    justify-content:center;align-items:center;
+    text-align:center;
+    border:1px solid rgba(255,255,255,.15);
+  }
+  .flash-front{
+    background:linear-gradient(135deg, rgba(114,9,183,.3), rgba(58,134,255,.2));
+    box-shadow:0 20px 60px rgba(114,9,183,.3);
+  }
+  .flash-back{
+    background:linear-gradient(135deg, rgba(255,186,8,.18), rgba(6,214,160,.15));
+    transform:rotateY(180deg);
+    box-shadow:0 20px 60px rgba(255,186,8,.2);
+  }
+  .flash-label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.7rem;letter-spacing:2px;
+    color:var(--gold);text-transform:uppercase;
+    margin-bottom:14px;opacity:.9;
+  }
+  .flash-back .flash-label{color:var(--green)}
+  .flash-term{
+    font-family:'Orbitron',sans-serif;font-weight:700;
+    font-size:clamp(1.3rem, 5vw, 1.9rem);
+    line-height:1.1;letter-spacing:2px;
+    background:linear-gradient(135deg, #fff, var(--gold));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    margin-bottom:10px;
+  }
+  .flash-formula{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:1.05rem;color:var(--blue);
+    background:rgba(0,0,0,.4);
+    padding:8px 14px;border-radius:8px;margin-top:8px;
+  }
+  .flash-def{font-size:1rem;line-height:1.55;color:var(--text);max-width:90%}
+  .flash-example{margin-top:14px;font-size:.82rem;color:var(--muted);font-style:italic;line-height:1.4}
+  .flash-tap{
+    position:absolute;bottom:14px;
+    font-size:.7rem;color:var(--muted);
+    font-family:'IBM Plex Mono',monospace;letter-spacing:1px;
+  }
+  .flash-nav{display:flex;gap:10px;align-items:center;justify-content:space-between}
+  .flash-arrow{
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.15);
+    color:var(--text);width:48px;height:48px;border-radius:50%;
+    font-size:1.2rem;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:all .2s;
+  }
+  .flash-arrow:hover{background:var(--gold);color:#01010f;transform:scale(1.05)}
+  .flash-arrow:disabled{opacity:.3;cursor:not-allowed}
+  .flash-progress{flex:1;background:rgba(255,255,255,.06);height:6px;border-radius:3px;overflow:hidden}
+  .flash-progress-bar{height:100%;background:linear-gradient(90deg, var(--accent), var(--gold));transition:width .3s}
+  .flash-counter{font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--muted);text-align:center;margin-top:10px}
+  .flash-mark{margin-top:14px;display:flex;gap:8px}
+  .mark-btn{
+    flex:1;padding:10px;border:none;border-radius:10px;
+    font-family:'Inter',sans-serif;font-weight:700;font-size:.85rem;
+    cursor:pointer;transition:transform .15s;
+  }
+  .mark-btn:active{transform:scale(.96)}
+  .mark-known{background:rgba(6,214,160,.15);color:var(--green);border:1px solid var(--green)}
+  .mark-review{background:rgba(114,9,183,.2);color:#c77dff;border:1px solid var(--accent)}
+
+  /* SIMULATION */
+  .sim-controls{display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:12px;margin-bottom:20px}
+  .control{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);padding:12px;border-radius:12px}
+  .control label{display:block;font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--blue);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+  .control input[type=range]{width:100%;accent-color:var(--gold)}
+  .control .val{font-family:'Orbitron',sans-serif;font-weight:700;color:var(--gold);font-size:1.1rem}
+  #three-container canvas{display:block}
+  .sim-buttons{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  .sim-btn{
+    flex:1;min-width:100px;padding:12px;border:none;border-radius:10px;
+    font-family:'Inter',sans-serif;font-weight:700;cursor:pointer;
+    transition:transform .15s;
+  }
+  .sim-btn:active{transform:scale(.96)}
+  .btn-play{background:var(--green);color:#01010f}
+  .btn-reset{background:rgba(255,255,255,.1);color:var(--text)}
+  .readout{margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit, minmax(110px, 1fr));gap:8px}
+  .read-card{
+    background:rgba(58,134,255,.08);
+    border:1px solid rgba(58,134,255,.2);
+    border-radius:10px;padding:10px;text-align:center;
+  }
+  .read-card .lbl{font-size:.7rem;color:var(--blue);font-family:'IBM Plex Mono',monospace}
+  .read-card .num{font-family:'Orbitron',sans-serif;font-weight:700;font-size:1.1rem;color:var(--text)}
+
+  /* MATCH */
+  .match-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .match-card{
+    background:rgba(255,255,255,.05);
+    border:2px solid rgba(255,255,255,.1);
+    padding:14px;border-radius:12px;
+    cursor:pointer;font-size:.85rem;
+    text-align:center;min-height:70px;
+    display:flex;align-items:center;justify-content:center;
+    transition:all .2s;
+  }
+  .match-card:hover{border-color:var(--blue)}
+  .match-card.selected{border-color:var(--gold);background:rgba(255,186,8,.15)}
+  .match-card.matched{background:rgba(6,214,160,.15);border-color:var(--green);color:var(--green);cursor:default;opacity:.7}
+  .match-card.wrong{background:rgba(114,9,183,.2);border-color:var(--accent);animation:shake .3s}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+  .reset-link{
+    display:block;text-align:center;margin-top:18px;
+    color:var(--muted);font-size:.85rem;cursor:pointer;
+    text-decoration:underline;background:none;border:none;width:100%;
+  }
+
+  .win-overlay{
+    position:fixed;inset:0;background:rgba(1,1,15,.95);
+    display:none;align-items:center;justify-content:center;
+    z-index:100;padding:20px;
+  }
+  .win-overlay.show{display:flex;animation:fadeIn .4s}
+  .win-card{
+    background:linear-gradient(135deg, var(--accent), var(--gold));
+    color:#01010f;padding:30px;border-radius:20px;text-align:center;max-width:340px;
+  }
+  .win-card h2{font-family:'Orbitron',sans-serif;font-weight:900;font-size:2rem;margin-bottom:8px;letter-spacing:2px}
+  .win-card button{
+    margin-top:16px;padding:12px 28px;border:none;border-radius:10px;
+    background:#01010f;color:var(--gold);font-weight:700;cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1 class="title">COSMIC<br>PULL</h1>
+    <div class="subtitle">// Class 11 Physics · Gravitation</div>
+    <div class="stats">
+      <div class="stat">SCORE <strong id="score">0</strong></div>
+      <div class="stat">STREAK <strong id="streak">0</strong>🔥</div>
+      <div class="stat">LEVEL <strong id="level">1</strong></div>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="quiz">🧠 Quiz</button>
+    <button class="tab" data-tab="flash">🎴 Cards</button>
+    <button class="tab" data-tab="sim">🪐 Orbit</button>
+    <button class="tab" data-tab="match">🔗 Match</button>
+  </div>
+
+  <section class="panel active" id="quiz">
+    <h2>BRAIN BOOST</h2>
+    <p class="panel-sub">Test your gravity concepts — +10 points per correct answer!</p>
+    <div id="quiz-box"></div>
+  </section>
+
+  <section class="panel" id="flash">
+    <h2>FLASH CARDS</h2>
+    <p class="panel-sub">Tap a card to flip it. Definitions, formulas and examples all in one place.</p>
+    <div class="flash-stage">
+      <div class="flash-card" id="flash-card">
+        <div class="flash-face flash-front">
+          <div class="flash-label">CONCEPT</div>
+          <div class="flash-term" id="f-term">Loading…</div>
+          <div class="flash-tap">tap to flip ↻</div>
+        </div>
+        <div class="flash-face flash-back">
+          <div class="flash-label">EXPLANATION</div>
+          <div class="flash-def" id="f-def"></div>
+          <div class="flash-formula" id="f-formula"></div>
+          <div class="flash-example" id="f-example"></div>
+          <div class="flash-tap">tap to flip back ↺</div>
+        </div>
+      </div>
+    </div>
+    <div class="flash-nav">
+      <button class="flash-arrow" id="f-prev">←</button>
+      <div class="flash-progress"><div class="flash-progress-bar" id="f-bar"></div></div>
+      <button class="flash-arrow" id="f-next">→</button>
+    </div>
+    <div class="flash-counter" id="f-counter">1 / 12</div>
+    <div class="flash-mark">
+      <button class="mark-btn mark-review" id="f-review">🔁 Need Review</button>
+      <button class="mark-btn mark-known" id="f-known">✓ Got It (+5)</button>
+    </div>
+  </section>
+
+  <section class="panel" id="sim">
+    <h2>ORBIT LAB — 3D</h2>
+    <p class="panel-sub">Adjust satellite speed and orbit radius. See if it stays in orbit, escapes, or crashes 🚀 <span style="color:var(--gold)">Drag to rotate the view</span></p>
+    <div class="sim-controls">
+      <div class="control">
+        <label>Orbit Radius</label>
+        <input type="range" id="r" min="3" max="9" value="5" step="0.25">
+        <div><span class="val" id="r-val">5</span> <span style="color:var(--muted);font-size:.8rem">units</span></div>
+      </div>
+      <div class="control">
+        <label>Initial Speed</label>
+        <input type="range" id="v0" min="0.5" max="3" value="1.5" step="0.1">
+        <div><span class="val" id="v0-val">1.5</span> <span style="color:var(--muted);font-size:.8rem">units/s</span></div>
+      </div>
+    </div>
+    <div id="three-container" style="width:100%;height:380px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.1);background:radial-gradient(circle at center, #0a0a2a 0%, #01010f 100%);position:relative;cursor:grab;touch-action:none"></div>
+    <div class="sim-buttons">
+      <button class="sim-btn btn-play" id="play-btn">▶ Launch</button>
+      <button class="sim-btn btn-reset" id="reset-btn">↺ Reset</button>
+    </div>
+    <div class="readout">
+      <div class="read-card"><div class="lbl">Speed</div><div class="num" id="r-speed">0</div></div>
+      <div class="read-card"><div class="lbl">Distance</div><div class="num" id="r-dist">0</div></div>
+      <div class="read-card"><div class="lbl">Status</div><div class="num" id="r-status" style="font-size:.9rem">Ready</div></div>
+    </div>
+    <p style="margin-top:14px;font-size:.8rem;color:var(--muted);text-align:center;font-family:'IBM Plex Mono',monospace">
+      Orbital speed: v = √(GM/r) &nbsp;|&nbsp; Escape: v_e = √(2GM/r)
+    </p>
+  </section>
+
+  <section class="panel" id="match">
+    <h2>CONCEPT MATCH</h2>
+    <p class="panel-sub">Match each term with its correct meaning</p>
+    <div class="match-grid" id="match-grid"></div>
+    <button class="reset-link" id="match-reset">↺ Restart match game</button>
+  </section>
+
+</div>
+
+<div class="win-overlay" id="win">
+  <div class="win-card">
+    <h2>🚀 LEVEL UP!</h2>
+    <p id="win-msg">You're crushing it!</p>
+    <button onclick="document.getElementById('win').classList.remove('show')">Continue</button>
+  </div>
+</div>
+
+<script>
+let score = 0, streak = 0, level = 1;
+function updateStats(){
+  document.getElementById('score').textContent = score;
+  document.getElementById('streak').textContent = streak;
+  document.getElementById('level').textContent = level;
+  const newLevel = Math.floor(score/50)+1;
+  if(newLevel > level){ level = newLevel; showWin(`Level ${level} unlocked! 🚀`); }
+}
+function showWin(msg){
+  document.getElementById('win-msg').textContent = msg;
+  document.getElementById('win').classList.add('show');
+}
+
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById(t.dataset.tab).classList.add('active');
+  });
+});
+
+// QUIZ
+const questions = [
+  {
+    q: "Who proposed the Universal Law of Gravitation?",
+    opts: ["Albert Einstein", "Isaac Newton", "Galileo Galilei", "Johannes Kepler"],
+    correct: 1,
+    explain: "Isaac Newton proposed the Universal Law of Gravitation in 1687."
+  },
+  {
+    q: "The gravitational force between two objects is directly proportional to:",
+    opts: ["Sum of their masses", "Difference of their masses", "Product of their masses", "Distance between them"],
+    correct: 2,
+    explain: "F = G(m₁m₂)/r². The force is proportional to the PRODUCT of the two masses."
+  },
+  {
+    q: "The value of the universal gravitational constant G is:",
+    opts: ["6.67 × 10⁻¹¹ N·m²/kg²", "9.8 m/s²", "6.67 × 10¹¹ N/kg", "9.8 × 10⁻¹¹ N·m²/kg²"],
+    correct: 0,
+    explain: "G = 6.674 × 10⁻¹¹ N·m²/kg². It is a universal constant, same everywhere."
+  },
+  {
+    q: "What is the escape velocity from Earth's surface?",
+    opts: ["7.9 km/s", "11.2 km/s", "9.8 km/s", "15 km/s"],
+    correct: 1,
+    explain: "Escape velocity from Earth ≈ 11.2 km/s. Below this, an object falls back."
+  },
+  {
+    q: "Acceleration due to gravity at the centre of Earth is:",
+    opts: ["9.8 m/s²", "Maximum", "Zero", "Infinite"],
+    correct: 2,
+    explain: "At Earth's centre, mass pulls equally in all directions → net g = 0."
+  },
+  {
+    q: "Kepler's Third Law relates which two quantities?",
+    opts: ["Force and distance", "Time period and orbital radius", "Mass and velocity", "Speed and time"],
+    correct: 1,
+    explain: "T² ∝ r³ — The square of orbital period is proportional to the cube of the semi-major axis."
+  },
+  {
+    q: "The weight of an object on the Moon is approximately how much of its weight on Earth?",
+    opts: ["1/2", "1/4", "1/6", "1/10"],
+    correct: 2,
+    explain: "Moon's gravity is ~1/6 of Earth's, so weight on Moon ≈ Earth weight / 6."
+  },
+  {
+    q: "A geostationary satellite has an orbital period of:",
+    opts: ["12 hours", "24 hours", "1 hour", "365 days"],
+    correct: 1,
+    explain: "It rotates with Earth (24 hours) so it appears stationary above one point."
+  },
+  {
+    q: "Gravitational potential energy of a body at infinity is:",
+    opts: ["Maximum positive", "Zero", "Minimum negative", "Equal to kinetic energy"],
+    correct: 1,
+    explain: "By convention, gravitational PE at infinity is taken as zero. PE is negative everywhere else."
+  },
+  {
+    q: "Which has more value of 'g' — top of a mountain or sea level?",
+    opts: ["Top of mountain", "Sea level", "Same at both", "Depends on weather"],
+    correct: 1,
+    explain: "g decreases with altitude (height). g = GM/r². As r increases, g decreases."
+  }
+];
+let qIdx = 0;
+function renderQuestion(){
+  if(qIdx >= questions.length) qIdx = 0;
+  const q = questions[qIdx];
+  const box = document.getElementById('quiz-box');
+  box.innerHTML = `
+    <div class="question-box">
+      <div class="q-meta">QUESTION ${qIdx+1} / ${questions.length}</div>
+      <div class="q-text">${q.q}</div>
+    </div>
+    <div class="options">
+      ${q.opts.map((o,i)=>`<button class="option" data-i="${i}">${String.fromCharCode(65+i)}. ${o}</button>`).join('')}
+    </div>
+    <div class="feedback" id="fb"></div>
+    <button class="next-btn" id="next">Next Question →</button>
+  `;
+  box.querySelectorAll('.option').forEach(btn=>btn.addEventListener('click',()=>handleAnswer(btn)));
+  document.getElementById('next').addEventListener('click', ()=>{ qIdx++; renderQuestion(); });
+}
+function handleAnswer(btn){
+  const i = parseInt(btn.dataset.i);
+  const q = questions[qIdx];
+  const fb = document.getElementById('fb');
+  document.querySelectorAll('.option').forEach(b=>b.disabled = true);
+  if(i === q.correct){
+    btn.classList.add('correct');
+    fb.classList.add('show','correct');
+    fb.innerHTML = `✅ <strong>Correct!</strong> ${q.explain}`;
+    score += 10; streak++;
+    if(streak>0 && streak%3===0) score += 5;
+  } else {
+    btn.classList.add('wrong');
+    document.querySelectorAll('.option')[q.correct].classList.add('correct');
+    fb.classList.add('show','wrong');
+    fb.innerHTML = `❌ <strong>Incorrect.</strong> ${q.explain}`;
+    streak = 0;
+  }
+  updateStats();
+  document.getElementById('next').classList.add('show');
+}
+renderQuestion();
+
+// FLASHCARDS
+const flashcards = [
+  {
+    term: "Universal Law of Gravitation",
+    def: "Every object in the universe attracts every other object with a force directly proportional to the product of their masses and inversely proportional to the square of the distance between them.",
+    formula: "F = G(m₁m₂)/r²",
+    example: "Earth attracts Moon and vice versa"
+  },
+  {
+    term: "Gravitational Constant (G)",
+    def: "A universal constant that appears in Newton's law of gravitation. Its value is the same throughout the universe.",
+    formula: "G = 6.674 × 10⁻¹¹ N·m²/kg²",
+    example: "Same value applies to attraction between galaxies or between two apples"
+  },
+  {
+    term: "Acceleration due to Gravity (g)",
+    def: "The acceleration experienced by a body in free fall near Earth's surface. It depends on Earth's mass and the body's distance from Earth's centre.",
+    formula: "g = GM/R² ≈ 9.8 m/s²",
+    example: "A dropped stone speeds up by 9.8 m/s every second"
+  },
+  {
+    term: "Weight",
+    def: "The gravitational force with which Earth (or any planet) attracts a body. It is a vector quantity, directed toward the centre of the planet.",
+    formula: "W = mg",
+    example: "A 50 kg person weighs 490 N on Earth, but only ~82 N on the Moon"
+  },
+  {
+    term: "Variation of g with Height",
+    def: "Acceleration due to gravity decreases as we move above Earth's surface. The further from the centre, the smaller the g.",
+    formula: "g_h = g(R/(R+h))²",
+    example: "On Mount Everest (h ≈ 9 km), g is slightly less than at sea level"
+  },
+  {
+    term: "Variation of g with Depth",
+    def: "Acceleration due to gravity also decreases as we go below Earth's surface, becoming zero at the centre.",
+    formula: "g_d = g(1 − d/R)",
+    example: "Deep inside a mine, you would weigh slightly less"
+  },
+  {
+    term: "Gravitational Potential Energy",
+    def: "The energy stored in a body due to its position in a gravitational field. Taken as zero at infinity and negative elsewhere.",
+    formula: "U = −GMm/r",
+    example: "A satellite high above Earth has higher (less negative) PE than one closer"
+  },
+  {
+    term: "Escape Velocity",
+    def: "The minimum velocity required for an object to escape a planet's gravity completely, without ever returning.",
+    formula: "v_e = √(2GM/R) ≈ 11.2 km/s (Earth)",
+    example: "Rockets must reach this speed to leave Earth's gravitational pull"
+  },
+  {
+    term: "Orbital Velocity",
+    def: "The velocity required for a satellite to stay in a stable circular orbit around a planet at a given radius.",
+    formula: "v_o = √(GM/r)",
+    example: "ISS orbits Earth at ~7.7 km/s"
+  },
+  {
+    term: "Kepler's First Law",
+    def: "Every planet revolves around the Sun in an elliptical orbit, with the Sun at one of the two foci.",
+    formula: "Orbit shape: ellipse",
+    example: "Earth's orbit is slightly elliptical — distance from Sun varies through the year"
+  },
+  {
+    term: "Kepler's Second Law",
+    def: "The line joining a planet to the Sun sweeps out equal areas in equal intervals of time. So planets move faster when closer to the Sun.",
+    formula: "dA/dt = constant",
+    example: "Earth moves fastest in January (closest to Sun), slowest in July"
+  },
+  {
+    term: "Kepler's Third Law",
+    def: "The square of the orbital period of a planet is directly proportional to the cube of the semi-major axis of its orbit.",
+    formula: "T² ∝ r³",
+    example: "Outer planets like Jupiter take much longer to orbit the Sun than Earth"
+  }
+];
+let fIdx = 0, fKnown = new Set();
+function renderFlash(){
+  const c = flashcards[fIdx];
+  document.getElementById('f-term').textContent = c.term;
+  document.getElementById('f-def').textContent = c.def;
+  document.getElementById('f-formula').textContent = c.formula;
+  document.getElementById('f-example').textContent = '📌 ' + c.example;
+  document.getElementById('flash-card').classList.remove('flipped');
+  document.getElementById('f-counter').textContent = `${fIdx+1} / ${flashcards.length}`;
+  document.getElementById('f-bar').style.width = `${((fIdx+1)/flashcards.length)*100}%`;
+  document.getElementById('f-prev').disabled = fIdx === 0;
+  document.getElementById('f-next').disabled = fIdx === flashcards.length-1;
+}
+document.getElementById('flash-card').addEventListener('click', e=>e.currentTarget.classList.toggle('flipped'));
+document.getElementById('f-prev').addEventListener('click', e=>{e.stopPropagation();if(fIdx>0){fIdx--;renderFlash();}});
+document.getElementById('f-next').addEventListener('click', e=>{e.stopPropagation();if(fIdx<flashcards.length-1){fIdx++;renderFlash();}});
+document.getElementById('f-known').addEventListener('click', e=>{
+  e.stopPropagation();
+  if(!fKnown.has(fIdx)){
+    fKnown.add(fIdx); score+=5; streak++; updateStats();
+    if(fKnown.size === flashcards.length){
+      showWin('All cards mastered! 🏆 +25 bonus'); score+=25; updateStats();
+    }
+  }
+  if(fIdx < flashcards.length-1){ fIdx++; renderFlash(); }
+});
+document.getElementById('f-review').addEventListener('click', e=>{
+  e.stopPropagation();
+  if(fIdx < flashcards.length-1){ fIdx++; renderFlash(); }
+  else { fIdx = 0; renderFlash(); }
+});
+renderFlash();
+
+// ORBIT SIMULATION (3D)
+const threeContainer = document.getElementById('three-container');
+let scene, camera, renderer, planet, satellite, trailLine, trailPositions, trailIndex;
+let cameraAngle = 0.8, cameraTilt = 0.5, cameraDist = 18;
+const GM = 12;
+
+let simRunning = false;
+let sat = {x:0, y:0, z:0, vx:0, vy:0, vz:0, alive:true, status:'Ready'};
+
+function getParams(){
+  return {
+    r: parseFloat(document.getElementById('r').value),
+    v0: parseFloat(document.getElementById('v0').value)
+  };
+}
+
+function initThree(){
+  scene = new THREE.Scene();
+
+  const w = threeContainer.clientWidth;
+  const h = threeContainer.clientHeight;
+  camera = new THREE.PerspectiveCamera(45, w/h, 0.1, 1000);
+
+  renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+  renderer.setSize(w, h);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  threeContainer.appendChild(renderer.domElement);
+
+  // Star field background
+  const starGeo = new THREE.BufferGeometry();
+  const starCount = 800;
+  const starPositions = new Float32Array(starCount * 3);
+  const starColors = new Float32Array(starCount * 3);
+  for(let i = 0; i < starCount; i++){
+    const radius = 80 + Math.random() * 80;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2*Math.random() - 1);
+    starPositions[i*3] = radius * Math.sin(phi) * Math.cos(theta);
+    starPositions[i*3+1] = radius * Math.sin(phi) * Math.sin(theta);
+    starPositions[i*3+2] = radius * Math.cos(phi);
+    const c = Math.random();
+    if(c < 0.7){
+      starColors[i*3] = 1; starColors[i*3+1] = 1; starColors[i*3+2] = 1;
+    } else if(c < 0.85){
+      starColors[i*3] = 1; starColors[i*3+1] = 0.7; starColors[i*3+2] = 0.3;
+    } else {
+      starColors[i*3] = 0.5; starColors[i*3+1] = 0.7; starColors[i*3+2] = 1;
+    }
+  }
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+  starGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
+  const starMat = new THREE.PointsMaterial({size: 0.6, vertexColors: true, transparent: true, opacity: 0.9, sizeAttenuation: true});
+  const stars = new THREE.Points(starGeo, starMat);
+  scene.add(stars);
+
+  // Lights
+  const ambient = new THREE.AmbientLight(0x4a3a8e, 0.3);
+  scene.add(ambient);
+  const sunLight = new THREE.DirectionalLight(0xffba08, 1.5);
+  sunLight.position.set(15, 8, 10);
+  scene.add(sunLight);
+  const rimLight = new THREE.PointLight(0x7209b7, 1.2, 30);
+  rimLight.position.set(-8, -3, -5);
+  scene.add(rimLight);
+  const rimLight2 = new THREE.PointLight(0x3a86ff, 0.8, 25);
+  rimLight2.position.set(0, 8, -8);
+  scene.add(rimLight2);
+
+  // Planet
+  const planetGeo = new THREE.SphereGeometry(1.5, 64, 64);
+  const texCanvas = document.createElement('canvas');
+  texCanvas.width = 512; texCanvas.height = 256;
+  const tctx = texCanvas.getContext('2d');
+  const oceanGrad = tctx.createLinearGradient(0, 0, 0, 256);
+  oceanGrad.addColorStop(0, '#1a3a7a');
+  oceanGrad.addColorStop(0.5, '#3a86ff');
+  oceanGrad.addColorStop(1, '#1a3a7a');
+  tctx.fillStyle = oceanGrad;
+  tctx.fillRect(0, 0, 512, 256);
+  tctx.fillStyle = '#2a8050';
+  for(let i = 0; i < 25; i++){
+    const x = Math.random()*512, y = Math.random()*256;
+    const r = 15 + Math.random()*40;
+    tctx.beginPath();
+    tctx.ellipse(x, y, r, r*0.6, Math.random()*Math.PI, 0, Math.PI*2);
+    tctx.fill();
+  }
+  tctx.fillStyle = '#4ab070';
+  for(let i = 0; i < 20; i++){
+    const x = Math.random()*512, y = Math.random()*256;
+    const r = 8 + Math.random()*20;
+    tctx.beginPath();
+    tctx.ellipse(x, y, r, r*0.5, 0, 0, Math.PI*2);
+    tctx.fill();
+  }
+  tctx.fillStyle = '#e0f0ff';
+  tctx.fillRect(0, 0, 512, 18);
+  tctx.fillRect(0, 238, 512, 18);
+  tctx.fillStyle = 'rgba(255,255,255,0.4)';
+  for(let i = 0; i < 30; i++){
+    const x = Math.random()*512, y = Math.random()*256;
+    const r = 10 + Math.random()*30;
+    tctx.beginPath();
+    tctx.ellipse(x, y, r, r*0.4, 0, 0, Math.PI*2);
+    tctx.fill();
+  }
+  const planetTexture = new THREE.CanvasTexture(texCanvas);
+  const planetMat = new THREE.MeshStandardMaterial({map: planetTexture, roughness: 0.7, metalness: 0.1, emissive: 0x112244, emissiveIntensity: 0.15});
+  planet = new THREE.Mesh(planetGeo, planetMat);
+  scene.add(planet);
+
+  const atmGeo = new THREE.SphereGeometry(1.65, 32, 32);
+  const atmMat = new THREE.MeshBasicMaterial({color: 0x4a9eff, transparent: true, opacity: 0.15, side: THREE.BackSide});
+  scene.add(new THREE.Mesh(atmGeo, atmMat));
+  const glowGeo = new THREE.SphereGeometry(1.85, 32, 32);
+  const glowMat = new THREE.MeshBasicMaterial({color: 0x3a86ff, transparent: true, opacity: 0.08, side: THREE.BackSide});
+  scene.add(new THREE.Mesh(glowGeo, glowMat));
+
+  // Satellite
+  const satGroup = new THREE.Group();
+  const satBody = new THREE.BoxGeometry(0.18, 0.18, 0.3);
+  const satMat = new THREE.MeshStandardMaterial({color: 0xffba08, metalness: 0.8, roughness: 0.2, emissive: 0xff9e00, emissiveIntensity: 0.3});
+  satGroup.add(new THREE.Mesh(satBody, satMat));
+  const panelGeo = new THREE.BoxGeometry(0.6, 0.02, 0.2);
+  const panelMat = new THREE.MeshStandardMaterial({color: 0x1a4a8a, metalness: 0.7, roughness: 0.3, emissive: 0x1a3a7a, emissiveIntensity: 0.4});
+  const panel1 = new THREE.Mesh(panelGeo, panelMat); panel1.position.x = 0.35; satGroup.add(panel1);
+  const panel2 = new THREE.Mesh(panelGeo, panelMat); panel2.position.x = -0.35; satGroup.add(panel2);
+  const antGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.3, 6);
+  const antMat = new THREE.MeshStandardMaterial({color: 0xeeeeee, metalness: 0.9, roughness: 0.1});
+  const antenna = new THREE.Mesh(antGeo, antMat); antenna.position.y = 0.2; satGroup.add(antenna);
+  satellite = satGroup;
+  scene.add(satellite);
+
+  // Orbit ring
+  const orbitRingGeo = new THREE.RingGeometry(5 - 0.02, 5 + 0.02, 128);
+  const orbitRingMat = new THREE.MeshBasicMaterial({color: 0xffba08, transparent: true, opacity: 0.25, side: THREE.DoubleSide});
+  const orbitRing = new THREE.Mesh(orbitRingGeo, orbitRingMat);
+  orbitRing.rotation.x = Math.PI/2;
+  orbitRing.userData.isOrbitRing = true;
+  scene.add(orbitRing);
+
+  // Trail
+  const trailMaxPoints = 400;
+  trailPositions = new Float32Array(trailMaxPoints * 3);
+  trailIndex = 0;
+  const trailGeo = new THREE.BufferGeometry();
+  trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
+  trailGeo.setDrawRange(0, 0);
+  const trailMat = new THREE.LineBasicMaterial({color: 0xffba08, transparent: true, opacity: 0.7});
+  trailLine = new THREE.Line(trailGeo, trailMat);
+  scene.add(trailLine);
+
+  let dragging = false, lastX = 0, lastY = 0;
+  threeContainer.addEventListener('pointerdown', e=>{dragging = true; lastX = e.clientX; lastY = e.clientY; threeContainer.style.cursor = 'grabbing';});
+  window.addEventListener('pointermove', e=>{
+    if(!dragging) return;
+    cameraAngle -= (e.clientX - lastX)*0.008;
+    cameraTilt = Math.max(0.1, Math.min(1.4, cameraTilt - (e.clientY - lastY)*0.005));
+    lastX = e.clientX; lastY = e.clientY;
+    updateCamera();
+  });
+  window.addEventListener('pointerup', ()=>{dragging = false; threeContainer.style.cursor = 'grab';});
+  window.addEventListener('resize', ()=>{
+    if(!threeContainer.clientWidth) return;
+    camera.aspect = threeContainer.clientWidth/threeContainer.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(threeContainer.clientWidth, threeContainer.clientHeight);
+  });
+
+  updateCamera();
+  resetSim();
+  animate();
+}
+
+function updateCamera(){
+  camera.position.x = Math.cos(cameraAngle) * cameraDist;
+  camera.position.z = Math.sin(cameraAngle) * cameraDist;
+  camera.position.y = cameraTilt * 12;
+  camera.lookAt(0, 0, 0);
+}
+
+function updateOrbitRing(){
+  const {r} = getParams();
+  scene.children.forEach(ch=>{if(ch.userData.isOrbitRing) scene.remove(ch);});
+  const ringGeo = new THREE.RingGeometry(r - 0.025, r + 0.025, 128);
+  const ringMat = new THREE.MeshBasicMaterial({color: 0xffba08, transparent: true, opacity: 0.25, side: THREE.DoubleSide});
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.rotation.x = Math.PI/2;
+  ring.userData.isOrbitRing = true;
+  scene.add(ring);
+}
+
+function resetSim(){
+  const {r, v0} = getParams();
+  sat.x = r; sat.y = 0; sat.z = 0;
+  sat.vx = 0; sat.vy = 0; sat.vz = v0;
+  sat.alive = true; sat.status = 'Ready';
+  trailIndex = 0;
+  trailLine.geometry.setDrawRange(0, 0);
+  simRunning = false;
+  document.getElementById('play-btn').textContent = '▶ Launch';
+  updateOrbitRing();
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  if(planet) planet.rotation.y += 0.002;
+
+  if(simRunning && sat.alive){
+    const dt = 0.04;
+    const dx = -sat.x, dy = -sat.y, dz = -sat.z;
+    const r2 = dx*dx + dy*dy + dz*dz;
+    const r = Math.sqrt(r2);
+    const a = GM/r2;
+    sat.vx += a*dx/r*dt; sat.vy += a*dy/r*dt; sat.vz += a*dz/r*dt;
+    sat.x += sat.vx*dt; sat.y += sat.vy*dt; sat.z += sat.vz*dt;
+
+    if(r < 1.55){ sat.alive = false; sat.status = '💥 Crashed!'; simRunning = false; document.getElementById('play-btn').textContent = '▶ Launch'; streak = 0; updateStats(); }
+    if(r > 30){ sat.alive = false; sat.status = '🚀 Escaped!'; simRunning = false; document.getElementById('play-btn').textContent = '▶ Launch'; score += 5; updateStats(); }
+    if(trailIndex === 250 && sat.alive){ sat.status = '✓ Stable orbit'; score += 15; streak++; updateStats(); }
+
+    if(sat.alive && trailIndex < 400){
+      trailPositions[trailIndex*3] = sat.x; trailPositions[trailIndex*3+1] = sat.y; trailPositions[trailIndex*3+2] = sat.z;
+      trailIndex++;
+      trailLine.geometry.setDrawRange(0, trailIndex);
+      trailLine.geometry.attributes.position.needsUpdate = true;
+    } else if(trailIndex >= 400){
+      for(let i = 0; i < 399; i++){
+        trailPositions[i*3] = trailPositions[(i+1)*3];
+        trailPositions[i*3+1] = trailPositions[(i+1)*3+1];
+        trailPositions[i*3+2] = trailPositions[(i+1)*3+2];
+      }
+      trailPositions[399*3] = sat.x; trailPositions[399*3+1] = sat.y; trailPositions[399*3+2] = sat.z;
+      trailLine.geometry.attributes.position.needsUpdate = true;
+    }
+  }
+
+  if(satellite){ satellite.position.set(sat.x, sat.y, sat.z); if(sat.alive) satellite.rotation.y += 0.02; satellite.visible = sat.alive; }
+
+  const speed = Math.sqrt(sat.vx*sat.vx + sat.vy*sat.vy + sat.vz*sat.vz);
+  const dist = Math.sqrt(sat.x*sat.x + sat.y*sat.y + sat.z*sat.z);
+  document.getElementById('r-speed').textContent = speed.toFixed(2);
+  document.getElementById('r-dist').textContent = dist.toFixed(1);
+  document.getElementById('r-status').textContent = sat.status;
+
+  if(renderer && scene && camera) renderer.render(scene, camera);
+}
+
+['r','v0'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', e=>{
+    document.getElementById(id+'-val').textContent = e.target.value;
+    if(!simRunning) resetSim();
+  });
+});
+
+document.getElementById('play-btn').addEventListener('click', ()=>{
+  if(!sat.alive) resetSim();
+  simRunning = !simRunning;
+  document.getElementById('play-btn').textContent = simRunning ? '⏸ Pause' : '▶ Launch';
+  if(simRunning) sat.status = '🛰 In flight';
+});
+document.getElementById('reset-btn').addEventListener('click', resetSim);
+
+let threeInitialized = false;
+function ensureThree(){
+  if(threeInitialized) return;
+  if(threeContainer.clientWidth === 0) return;
+  threeInitialized = true;
+  initThree();
+}
+document.querySelector('.tab[data-tab="sim"]').addEventListener('click', ()=>{ setTimeout(ensureThree, 50); });
+setTimeout(ensureThree, 200);
+
+// MATCH
+const pairs = [
+  {term:"Universal Gravitation", def:"F = Gm₁m₂/r²"},
+  {term:"Escape Velocity (Earth)", def:"≈ 11.2 km/s"},
+  {term:"Kepler's 3rd Law", def:"T² ∝ r³"},
+  {term:"Acceleration due to g", def:"9.8 m/s²"},
+  {term:"Geostationary Period", def:"24 hours"},
+  {term:"g at Earth's centre", def:"Zero"}
+];
+let matchSelected = null, matchedCount = 0;
+function shuffle(arr){ return arr.sort(()=>Math.random()-0.5); }
+function renderMatch(){
+  matchedCount = 0; matchSelected = null;
+  const grid = document.getElementById('match-grid');
+  const items = [];
+  pairs.forEach((p,i)=>{ items.push({type:'term', text:p.term, id:i}); items.push({type:'def', text:p.def, id:i}); });
+  shuffle(items);
+  grid.innerHTML = items.map(it=>`<div class="match-card" data-type="${it.type}" data-id="${it.id}">${it.text}</div>`).join('');
+  grid.querySelectorAll('.match-card').forEach(card=>card.addEventListener('click',()=>handleMatch(card)));
+}
+function handleMatch(card){
+  if(card.classList.contains('matched')) return;
+  if(matchSelected === card){ card.classList.remove('selected'); matchSelected = null; return; }
+  if(!matchSelected){ card.classList.add('selected'); matchSelected = card; return; }
+  if(card.dataset.id === matchSelected.dataset.id && card.dataset.type !== matchSelected.dataset.type){
+    card.classList.add('matched'); matchSelected.classList.add('matched');
+    matchSelected.classList.remove('selected'); matchSelected = null;
+    matchedCount++; score += 8; streak++; updateStats();
+    if(matchedCount === pairs.length){ setTimeout(()=>showWin('All matched! +20 bonus 🎯'), 400); score += 20; updateStats(); }
+  } else {
+    card.classList.add('wrong'); matchSelected.classList.add('wrong');
+    streak = 0; updateStats();
+    const prev = matchSelected;
+    setTimeout(()=>{ card.classList.remove('wrong','selected'); prev.classList.remove('wrong','selected'); }, 600);
+    matchSelected = null;
+  }
+}
+document.getElementById('match-reset').addEventListener('click', renderMatch);
+renderMatch();
+</script>
+</body>
+</html>

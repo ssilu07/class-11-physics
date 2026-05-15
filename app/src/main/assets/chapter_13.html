@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Molecule Rush — Kinetic Theory of Gases</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Share+Tech+Mono&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="three.min.js"></script>
+<style>
+  :root{
+    --bg:#00080f;--bg2:#001a2e;
+    --accent:#00e5ff;--green:#39ff14;
+    --violet:#c77dff;--gold:#ffd60a;
+    --red:#ff4d6d;--text:#e0f7fa;--muted:#4a6a7a;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{overflow-x:hidden}
+  body{
+    font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;
+    background-image:radial-gradient(circle at 20% 25%,rgba(0,229,255,.13),transparent 45%),radial-gradient(circle at 80% 75%,rgba(199,125,255,.11),transparent 45%),radial-gradient(circle at 50% 50%,rgba(57,255,20,.06),transparent 50%);
+    padding:20px 16px 60px;
+  }
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.025) 1px,transparent 1px);background-size:42px 42px;pointer-events:none;z-index:0;}
+  .container{position:relative;z-index:1;max-width:900px;margin:0 auto}
+  header{text-align:center;margin-bottom:28px;padding:20px 0}
+  .title{font-family:'Orbitron',sans-serif;font-weight:800;font-size:clamp(1.8rem,6.5vw,3.5rem);line-height:1;letter-spacing:3px;background:linear-gradient(135deg,var(--accent),var(--green),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 30px rgba(0,229,255,.5));}
+  .subtitle{font-family:'Share Tech Mono',monospace;color:var(--accent);font-size:.82rem;margin-top:8px;letter-spacing:3px;text-transform:uppercase}
+  .stats{display:flex;justify-content:center;gap:14px;margin-top:16px;flex-wrap:wrap}
+  .stat{background:rgba(255,255,255,.05);border:1px solid rgba(0,229,255,.2);border-radius:12px;padding:8px 16px;font-family:'Share Tech Mono',monospace;font-size:.8rem}
+  .stat strong{color:var(--gold);font-size:1rem}
+  .tabs{display:flex;gap:8px;margin-bottom:22px;background:rgba(255,255,255,.04);padding:6px;border-radius:16px;border:1px solid rgba(255,255,255,.07);overflow-x:auto}
+  .tab{flex:1;min-width:fit-content;padding:11px 14px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;font-size:.9rem;border-radius:10px;transition:all .25s;white-space:nowrap}
+  .tab.active{background:linear-gradient(135deg,var(--accent),var(--violet));color:#00080f;box-shadow:0 4px 18px rgba(0,229,255,.4)}
+  .panel{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:22px;padding:22px;backdrop-filter:blur(10px);display:none;animation:fadeIn .4s ease}
+  .panel.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .panel h2{font-family:'Orbitron',sans-serif;font-weight:800;font-size:1.4rem;margin-bottom:6px;color:var(--gold);letter-spacing:2px}
+  .panel-sub{color:var(--muted);font-size:.88rem;margin-bottom:18px}
+  .question-box{background:linear-gradient(135deg,rgba(0,229,255,.09),rgba(199,125,255,.06));border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:18px;margin-bottom:14px}
+  .q-text{font-size:1.02rem;font-weight:600;line-height:1.5;margin-bottom:5px}
+  .q-meta{font-family:'Share Tech Mono',monospace;font-size:.72rem;color:var(--accent);letter-spacing:1px}
+  .options{display:grid;gap:9px}
+  .option{background:rgba(255,255,255,.05);border:2px solid rgba(255,255,255,.09);color:var(--text);padding:13px 16px;border-radius:11px;text-align:left;cursor:pointer;font-family:'Nunito',sans-serif;font-size:.93rem;transition:all .2s}
+  .option:hover{background:rgba(0,229,255,.08);border-color:var(--accent);transform:translateX(4px)}
+  .option.correct{background:rgba(57,255,20,.13);border-color:var(--green);color:var(--green)}
+  .option.wrong{background:rgba(255,77,109,.12);border-color:var(--red);color:var(--red)}
+  .option:disabled{cursor:not-allowed}
+  .feedback{margin-top:12px;padding:13px;border-radius:11px;font-size:.88rem;line-height:1.5;display:none}
+  .feedback.show{display:block;animation:fadeIn .3s}
+  .feedback.correct{background:rgba(57,255,20,.08);border-left:4px solid var(--green)}
+  .feedback.wrong{background:rgba(255,77,109,.08);border-left:4px solid var(--red)}
+  .next-btn{margin-top:12px;width:100%;padding:13px;border:none;border-radius:11px;background:linear-gradient(135deg,var(--accent),var(--violet));color:#00080f;font-weight:800;font-size:.97rem;cursor:pointer;font-family:'Orbitron',sans-serif;letter-spacing:2px;display:none}
+  .next-btn.show{display:block}
+  .flash-stage{perspective:1200px;margin:10px 0 16px}
+  .flash-card{position:relative;width:100%;height:270px;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.4,0,.2,1);cursor:pointer}
+  .flash-card.flipped{transform:rotateY(180deg)}
+  .flash-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:18px;padding:22px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;border:1px solid rgba(255,255,255,.12)}
+  .flash-front{background:linear-gradient(135deg,rgba(0,229,255,.2),rgba(57,255,20,.1));box-shadow:0 18px 50px rgba(0,229,255,.18)}
+  .flash-back{background:linear-gradient(135deg,rgba(199,125,255,.2),rgba(0,229,255,.1));transform:rotateY(180deg);box-shadow:0 18px 50px rgba(199,125,255,.18)}
+  .flash-label{font-family:'Share Tech Mono',monospace;font-size:.68rem;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:12px;opacity:.9}
+  .flash-back .flash-label{color:var(--accent)}
+  .flash-term{font-family:'Orbitron',sans-serif;font-weight:800;font-size:clamp(1.2rem,4.5vw,1.8rem);line-height:1.15;background:linear-gradient(135deg,#fff,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:8px}
+  .flash-formula{font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--accent);background:rgba(0,0,0,.35);padding:7px 13px;border-radius:7px;margin-top:7px}
+  .flash-def{font-size:.96rem;line-height:1.55;color:var(--text);max-width:92%}
+  .flash-example{margin-top:12px;font-size:.8rem;color:var(--muted);font-style:italic;line-height:1.4}
+  .flash-tap{position:absolute;bottom:12px;font-size:.68rem;color:var(--muted);font-family:'Share Tech Mono',monospace;letter-spacing:1px}
+  .flash-nav{display:flex;gap:10px;align-items:center;justify-content:space-between}
+  .flash-arrow{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);color:var(--text);width:46px;height:46px;border-radius:50%;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+  .flash-arrow:hover{background:var(--gold);color:#00080f;transform:scale(1.05)}
+  .flash-arrow:disabled{opacity:.3;cursor:not-allowed}
+  .flash-progress{flex:1;background:rgba(255,255,255,.06);height:5px;border-radius:3px;overflow:hidden}
+  .flash-progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--violet));transition:width .3s}
+  .flash-counter{font-family:'Share Tech Mono',monospace;font-size:.77rem;color:var(--muted);text-align:center;margin-top:9px}
+  .flash-mark{margin-top:13px;display:flex;gap:8px}
+  .mark-btn{flex:1;padding:10px;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:700;font-size:.83rem;cursor:pointer;transition:transform .15s}
+  .mark-btn:active{transform:scale(.96)}
+  .mark-known{background:rgba(57,255,20,.12);color:var(--green);border:1px solid var(--green)}
+  .mark-review{background:rgba(255,77,109,.11);color:var(--red);border:1px solid var(--red)}
+  .sim-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+  .control{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);padding:11px;border-radius:11px}
+  .control label{display:block;font-family:'Share Tech Mono',monospace;font-size:.68rem;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
+  .control input[type=range]{width:100%;accent-color:var(--gold)}
+  .control .val{font-family:'Orbitron',sans-serif;font-weight:600;color:var(--gold);font-size:1.05rem}
+  #three-container canvas{display:block}
+  .sim-buttons{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+  .sim-btn{flex:1;min-width:90px;padding:11px;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:700;cursor:pointer;transition:transform .15s}
+  .sim-btn:active{transform:scale(.96)}
+  .btn-play{background:var(--green);color:#00080f}
+  .btn-reset{background:rgba(255,255,255,.09);color:var(--text)}
+  .readout{margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:7px}
+  .read-card{background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.18);border-radius:10px;padding:9px;text-align:center}
+  .read-card .lbl{font-size:.67rem;color:var(--accent);font-family:'Share Tech Mono',monospace}
+  .read-card .num{font-family:'Orbitron',sans-serif;font-weight:600;font-size:.95rem;color:var(--text)}
+  .dist-wrap{margin-top:14px;background:rgba(0,0,0,.3);border:1px solid rgba(0,229,255,.15);border-radius:12px;padding:12px}
+  .dist-title{font-family:'Share Tech Mono',monospace;font-size:.72rem;color:var(--accent);letter-spacing:1px;margin-bottom:8px;text-transform:uppercase}
+  .dist-bars{display:flex;align-items:flex-end;gap:3px;height:60px}
+  .dist-bar{flex:1;background:var(--accent);border-radius:3px 3px 0 0;transition:height .2s;min-height:2px;opacity:.8}
+  .dist-labels{display:flex;justify-content:space-between;margin-top:4px}
+  .dist-label{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--muted)}
+  .match-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .match-card{background:rgba(255,255,255,.05);border:2px solid rgba(255,255,255,.09);padding:13px;border-radius:11px;cursor:pointer;font-size:.83rem;text-align:center;min-height:66px;display:flex;align-items:center;justify-content:center;transition:all .2s}
+  .match-card:hover{border-color:var(--accent)}
+  .match-card.selected{border-color:var(--gold);background:rgba(255,214,10,.12)}
+  .match-card.matched{background:rgba(57,255,20,.12);border-color:var(--green);color:var(--green);cursor:default;opacity:.75}
+  .match-card.wrong{background:rgba(255,77,109,.11);border-color:var(--red);animation:shake .3s}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+  .reset-link{display:block;text-align:center;margin-top:16px;color:var(--muted);font-size:.83rem;cursor:pointer;text-decoration:underline;background:none;border:none;width:100%}
+  .win-overlay{position:fixed;inset:0;background:rgba(0,8,15,.95);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+  .win-overlay.show{display:flex;animation:fadeIn .4s}
+  .win-card{background:linear-gradient(135deg,var(--accent),var(--violet));color:#00080f;padding:28px;border-radius:18px;text-align:center;max-width:320px}
+  .win-card h2{font-family:'Orbitron',sans-serif;font-weight:800;font-size:2rem;margin-bottom:8px;letter-spacing:2px}
+  .win-card button{margin-top:14px;padding:11px 26px;border:none;border-radius:10px;background:#00080f;color:var(--gold);font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1 class="title">MOLECULE RUSH</h1>
+    <div class="subtitle">// Class 11 Physics · Kinetic Theory of Gases</div>
+    <div class="stats">
+      <div class="stat">SCORE <strong id="score">0</strong></div>
+      <div class="stat">STREAK <strong id="streak">0</strong>🔥</div>
+      <div class="stat">LEVEL <strong id="level">1</strong></div>
+    </div>
+  </header>
+  <div class="tabs">
+    <button class="tab active" data-tab="quiz">🧠 Quiz</button>
+    <button class="tab" data-tab="flash">🎴 Cards</button>
+    <button class="tab" data-tab="sim">⚗️ Gas Box</button>
+    <button class="tab" data-tab="match">🔗 Match</button>
+  </div>
+  <section class="panel active" id="quiz">
+    <h2>BRAIN BOOST</h2>
+    <p class="panel-sub">Test your kinetic theory knowledge — +10 per correct answer!</p>
+    <div id="quiz-box"></div>
+  </section>
+  <section class="panel" id="flash">
+    <h2>FLASH CARDS</h2>
+    <p class="panel-sub">Tap to flip. Definitions, formulas and examples all in one place.</p>
+    <div class="flash-stage">
+      <div class="flash-card" id="flash-card">
+        <div class="flash-face flash-front"><div class="flash-label">CONCEPT</div><div class="flash-term" id="f-term">Loading…</div><div class="flash-tap">tap to flip ↻</div></div>
+        <div class="flash-face flash-back"><div class="flash-label">EXPLANATION</div><div class="flash-def" id="f-def"></div><div class="flash-formula" id="f-formula"></div><div class="flash-example" id="f-example"></div><div class="flash-tap">tap to flip back ↺</div></div>
+      </div>
+    </div>
+    <div class="flash-nav">
+      <button class="flash-arrow" id="f-prev">←</button>
+      <div class="flash-progress"><div class="flash-progress-bar" id="f-bar"></div></div>
+      <button class="flash-arrow" id="f-next">→</button>
+    </div>
+    <div class="flash-counter" id="f-counter">1 / 12</div>
+    <div class="flash-mark">
+      <button class="mark-btn mark-review" id="f-review">🔁 Need Review</button>
+      <button class="mark-btn mark-known" id="f-known">✓ Got It (+5)</button>
+    </div>
+  </section>
+  <section class="panel" id="sim">
+    <h2>GAS BOX LAB — 3D</h2>
+    <p class="panel-sub">Real gas molecules bouncing inside a box. Change temperature, pressure and count. <span style="color:var(--gold)">Drag to rotate</span></p>
+    <div class="sim-controls">
+      <div class="control"><label>Temperature (T)</label><input type="range" id="temp" min="100" max="1000" value="300" step="10"><div><span class="val" id="temp-val">300</span> <span style="color:var(--muted);font-size:.75rem">K</span></div></div>
+      <div class="control"><label>Molecules (N)</label><input type="range" id="nmol" min="10" max="80" value="30" step="5"><div><span class="val" id="nmol-val">30</span></div></div>
+      <div class="control"><label>Box Size (V)</label><input type="range" id="boxsize" min="4" max="9" value="6" step="0.5"><div><span class="val" id="boxsize-val">6</span> <span style="color:var(--muted);font-size:.75rem">units</span></div></div>
+    </div>
+    <div id="three-container" style="width:100%;height:400px;border-radius:16px;overflow:hidden;border:1px solid rgba(0,229,255,.2);background:radial-gradient(ellipse at 50% 40%,#001830 0%,#00080f 100%);position:relative;cursor:grab;touch-action:none"></div>
+    <div class="sim-buttons">
+      <button class="sim-btn btn-play" id="play-btn">▶ Start</button>
+      <button class="sim-btn btn-reset" id="reset-btn">↺ Reset</button>
+    </div>
+    <div class="readout">
+      <div class="read-card"><div class="lbl">Avg KE</div><div class="num" id="r-ke">— J</div></div>
+      <div class="read-card"><div class="lbl">RMS Speed</div><div class="num" id="r-vrms">— m/s</div></div>
+      <div class="read-card"><div class="lbl">Pressure P</div><div class="num" id="r-pres">— Pa</div></div>
+      <div class="read-card"><div class="lbl">Collisions/s</div><div class="num" id="r-coll">—</div></div>
+    </div>
+    <div class="dist-wrap">
+      <div class="dist-title">Maxwell-Boltzmann Speed Distribution</div>
+      <div class="dist-bars" id="dist-bars"></div>
+      <div class="dist-labels"><span class="dist-label">Slow</span><span class="dist-label">Medium</span><span class="dist-label">Fast</span></div>
+    </div>
+    <p style="margin-top:12px;font-size:.77rem;color:var(--muted);text-align:center;font-family:'Share Tech Mono',monospace">KE_avg = (3/2)k_B T &nbsp;|&nbsp; v_rms = √(3k_B T/m) &nbsp;|&nbsp; PV = Nk_B T</p>
+  </section>
+  <section class="panel" id="match">
+    <h2>CONCEPT MATCH</h2>
+    <p class="panel-sub">Match each term with its correct meaning</p>
+    <div class="match-grid" id="match-grid"></div>
+    <button class="reset-link" id="match-reset">↺ Restart match game</button>
+  </section>
+</div>
+<div class="win-overlay" id="win">
+  <div class="win-card">
+    <h2>⚗️ LEVEL UP!</h2>
+    <p id="win-msg">Molecules are excited!</p>
+    <button onclick="document.getElementById('win').classList.remove('show')">Continue</button>
+  </div>
+</div>
+<script>
+let score=0,streak=0,level=1;
+function updateStats(){document.getElementById('score').textContent=score;document.getElementById('streak').textContent=streak;document.getElementById('level').textContent=level;const nl=Math.floor(score/50)+1;if(nl>level){level=nl;showWin('Level '+nl+' unlocked! ⚡');}}
+function showWin(msg){document.getElementById('win-msg').textContent=msg;document.getElementById('win').classList.add('show');}
+document.querySelectorAll('.tab').forEach(t=>{t.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));t.classList.add('active');document.getElementById(t.dataset.tab).classList.add('active');});});
+const questions=[
+  {q:'The average kinetic energy of a gas molecule is directly proportional to:',opts:['Its mass','Its pressure','Absolute temperature (T)','Volume of container'],correct:2,explain:'KE_avg = (3/2)k_B T. It depends only on temperature T in Kelvin — not on mass or type of gas.'},
+  {q:'What does the RMS speed of gas molecules depend on?',opts:['Pressure only','Temperature and molar mass','Volume only','Number of molecules'],correct:1,explain:'v_rms = √(3RT/M). RMS speed increases with temperature and decreases with higher molar mass.'},
+  {q:'At the same temperature, which gas molecules move fastest?',opts:['O₂ (M=32)','CO₂ (M=44)','H₂ (M=2)','N₂ (M=28)'],correct:2,explain:'v_rms = √(3RT/M). Lighter molecules (smaller M) move faster at the same T. H₂ is lightest.'},
+  {q:'The ideal gas equation PV = nRT assumes:',opts:['Molecules have large volumes','No intermolecular forces','Collisions are inelastic','Gas is always a solid at 0K'],correct:1,explain:'Ideal gas assumes: point-sized molecules, no intermolecular forces, and perfectly elastic collisions.'},
+  {q:'According to kinetic theory, gas pressure arises from:',opts:['Gravitational attraction','Molecules colliding with container walls','Magnetic forces','Temperature gradient'],correct:1,explain:'Pressure = rate of momentum transfer to walls. More collisions or faster molecules = higher pressure.'},
+  {q:'Boltzmann constant k_B relates:',opts:['Pressure and volume','Energy per molecule to temperature','Speed to mass','Entropy to temperature only'],correct:1,explain:'k_B = R/N_A = 1.38×10⁻²³ J/K. It connects the microscopic energy per molecule to macroscopic temperature.'},
+  {q:'Degrees of freedom of a monatomic gas molecule are:',opts:['1','2','3','5'],correct:2,explain:'A monatomic gas (like He, Ar) can only move in 3 directions (x, y, z) — so 3 translational degrees of freedom.'},
+  {q:'The equipartition theorem states that energy per degree of freedom is:',opts:['k_B T','(1/2)k_B T','(3/2)k_B T','2k_B T'],correct:1,explain:'Each degree of freedom contributes (1/2)k_B T to the average energy. So monatomic gas: KE = (3/2)k_B T.'},
+  {q:'If temperature of a gas is doubled (Kelvin), its RMS speed:',opts:['Doubles','Quadruples','Increases by √2','Stays same'],correct:2,explain:'v_rms ∝ √T. If T doubles → v_rms = √2 times original. Not double, not quadruple!'},
+  {q:'Mean free path of a gas molecule increases when:',opts:['Pressure increases','Temperature decreases','Number density decreases','Molecule size increases'],correct:2,explain:'λ = 1/(√2·π·d²·n). If number density n decreases (fewer molecules per volume) → mean free path increases.'}
+];
+let qIdx=0;
+function renderQuestion(){
+  if(qIdx>=questions.length)qIdx=0;const q=questions[qIdx];
+  document.getElementById('quiz-box').innerHTML=`<div class="question-box"><div class="q-meta">QUESTION ${qIdx+1} / ${questions.length}</div><div class="q-text">${q.q}</div></div><div class="options">${q.opts.map((o,i)=>`<button class="option" data-i="${i}">${String.fromCharCode(65+i)}. ${o}</button>`).join('')}</div><div class="feedback" id="fb"></div><button class="next-btn" id="next">Next Question →</button>`;
+  document.querySelectorAll('.option').forEach(b=>b.addEventListener('click',()=>handleAnswer(b)));
+  document.getElementById('next').addEventListener('click',()=>{qIdx++;renderQuestion();});
+}
+function handleAnswer(btn){
+  const i=parseInt(btn.dataset.i),q=questions[qIdx],fb=document.getElementById('fb');
+  document.querySelectorAll('.option').forEach(b=>b.disabled=true);
+  if(i===q.correct){btn.classList.add('correct');fb.classList.add('show','correct');fb.innerHTML=`✅ <strong>Correct!</strong> ${q.explain}`;score+=10;streak++;if(streak%3===0&&streak>0)score+=5;}
+  else{btn.classList.add('wrong');document.querySelectorAll('.option')[q.correct].classList.add('correct');fb.classList.add('show','wrong');fb.innerHTML=`❌ <strong>Incorrect.</strong> ${q.explain}`;streak=0;}
+  updateStats();document.getElementById('next').classList.add('show');
+}
+renderQuestion();
+const flashcards=[
+  {term:'Kinetic Theory',def:'A model that explains the macroscopic properties of gases (pressure, temperature, volume) in terms of the motion of their molecules.',formula:'Connects microscopic ↔ macroscopic',example:'Temperature is just a measure of average molecular KE'},
+  {term:'Ideal Gas',def:'A theoretical gas where molecules have no volume, no intermolecular forces, and undergo perfectly elastic collisions. Real gases approach this at low pressure and high temperature.',formula:'PV = nRT = Nk_BT',example:'Air at room temperature behaves nearly like an ideal gas'},
+  {term:'Kinetic Energy (avg)',def:'The average translational kinetic energy of a gas molecule depends only on temperature. All gases at the same T have the same average KE, regardless of mass.',formula:'KE_avg = (3/2) k_B T',example:'At 300K: KE_avg = 1.5 × 1.38×10⁻²³ × 300 ≈ 6.2×10⁻²¹ J'},
+  {term:'RMS Speed',def:'Root Mean Square speed — the square root of the mean of squared speeds. A useful average that accounts for direction of motion.',formula:'v_rms = √(3k_BT/m) = √(3RT/M)',example:'N₂ at 300K: v_rms ≈ 517 m/s. H₂: v_rms ≈ 1934 m/s'},
+  {term:'Maxwell-Boltzmann Distribution',def:'The statistical distribution of molecular speeds in a gas. Shows that most molecules have a peak (most probable) speed, with fewer moving very slow or very fast.',formula:'Peak shifts right as T increases',example:'Higher T → curve flattens and shifts right (more fast molecules)'},
+  {term:'Most Probable Speed',def:'The speed at which the Maxwell-Boltzmann distribution peaks — the speed most molecules have.',formula:'v_p = √(2k_BT/m) = √(2RT/M)',example:'v_p < v_avg < v_rms always (in this order)'},
+  {term:'Boltzmann Constant',def:'A fundamental physical constant that connects temperature (macroscopic) to energy per molecule (microscopic). It is R/Nₐ.',formula:'k_B = 1.38 × 10⁻²³ J/K',example:'If T=1K, each degree of freedom gets (1/2)k_B = 6.9×10⁻²⁴ J'},
+  {term:'Degrees of Freedom',def:'The number of independent ways a molecule can store kinetic energy. Translational (3), rotational, vibrational — depends on molecule type.',formula:'Mono: f=3, Di: f=5, Poly: f=6',example:'O₂ (diatomic) has 3 translational + 2 rotational = 5 degrees of freedom'},
+  {term:'Equipartition Theorem',def:'At thermal equilibrium, each degree of freedom of a molecule contributes (1/2)k_BT to its average energy.',formula:'E_per_dof = (1/2)k_BT',example:'Monatomic gas: 3 dof → KE = (3/2)k_BT per molecule'},
+  {term:'Mean Free Path (λ)',def:'The average distance a molecule travels between successive collisions. Decreases with higher pressure or larger molecules.',formula:'λ = 1/(√2·π·d²·n)',example:'Air at STP: λ ≈ 68 nm (about 100 molecular diameters)'},
+  {term:'Gas Pressure',def:'Arises from the continuous bombardment of container walls by gas molecules. More molecules or higher speed = higher pressure.',formula:'P = (1/3)ρv²_rms = Nk_BT/V',example:'Inflate a tyre → more molecules → more wall collisions → higher pressure'},
+  {term:'Internal Energy (U)',def:'The total kinetic energy of all molecules in an ideal gas. Depends only on temperature. For n moles: U = (f/2)nRT.',formula:'U = (3/2)nRT (monatomic)',example:'Heating 1 mol ideal gas by 1K adds (3/2)R ≈ 12.5 J of internal energy'}
+];
+let fIdx=0,fKnown=new Set();
+function renderFlash(){
+  const c=flashcards[fIdx];
+  document.getElementById('f-term').textContent=c.term;document.getElementById('f-def').textContent=c.def;document.getElementById('f-formula').textContent=c.formula;document.getElementById('f-example').textContent='📌 '+c.example;
+  document.getElementById('flash-card').classList.remove('flipped');document.getElementById('f-counter').textContent=`${fIdx+1} / ${flashcards.length}`;document.getElementById('f-bar').style.width=`${((fIdx+1)/flashcards.length)*100}%`;
+  document.getElementById('f-prev').disabled=fIdx===0;document.getElementById('f-next').disabled=fIdx===flashcards.length-1;
+}
+document.getElementById('flash-card').addEventListener('click',e=>e.currentTarget.classList.toggle('flipped'));
+document.getElementById('f-prev').addEventListener('click',e=>{e.stopPropagation();if(fIdx>0){fIdx--;renderFlash();}});
+document.getElementById('f-next').addEventListener('click',e=>{e.stopPropagation();if(fIdx<flashcards.length-1){fIdx++;renderFlash();}});
+document.getElementById('f-known').addEventListener('click',e=>{e.stopPropagation();if(!fKnown.has(fIdx)){fKnown.add(fIdx);score+=5;streak++;updateStats();if(fKnown.size===flashcards.length){showWin('All cards mastered! 🏆 +25 bonus');score+=25;updateStats();}}if(fIdx<flashcards.length-1){fIdx++;renderFlash();}});
+document.getElementById('f-review').addEventListener('click',e=>{e.stopPropagation();if(fIdx<flashcards.length-1){fIdx++;renderFlash();}else{fIdx=0;renderFlash();}});
+renderFlash();
+const threeContainer=document.getElementById('three-container');
+let scene,camera,renderer;
+let cameraAngle=0.5,cameraTilt=0.35,cameraDist=16;
+let simRunning=false;
+let molecules=[],molMeshes=[];
+let boxWalls=null;
+let collisionCount=0,collisionTimer=0;
+const kB=1.38e-23,MASS=4.65e-26;
+function getTemp(){return parseFloat(document.getElementById('temp').value);}
+function getNmol(){return parseInt(document.getElementById('nmol').value);}
+function getBoxSize(){return parseFloat(document.getElementById('boxsize').value);}
+function randNorm(){let u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function randomVelocity(T){const sigma=Math.sqrt(kB*T/MASS);return{vx:randNorm()*sigma,vy:randNorm()*sigma,vz:randNorm()*sigma};}
+function initThree(){
+  scene=new THREE.Scene();const w=threeContainer.clientWidth||threeContainer.offsetWidth||window.innerWidth||360;const h=threeContainer.clientHeight||threeContainer.offsetHeight||400;
+  camera=new THREE.PerspectiveCamera(48,w/h,0.1,200);
+  renderer=new THREE.WebGLRenderer({antialias:false,alpha:true});renderer.setSize(w,h);renderer.setPixelRatio(1);threeContainer.appendChild(renderer.domElement);
+  scene.add(new THREE.AmbientLight(0xffffff,0.5));
+  const sun=new THREE.DirectionalLight(0xaaeeff,1.1);sun.position.set(8,12,6);scene.add(sun);
+  const pl1=new THREE.PointLight(0x00e5ff,1.0,30);pl1.position.set(-6,4,5);scene.add(pl1);
+  const pl2=new THREE.PointLight(0xc77dff,0.7,25);pl2.position.set(5,2,-6);scene.add(pl2);
+  let dragging=false,lastX=0,lastY=0;
+  threeContainer.addEventListener('pointerdown',e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;threeContainer.style.cursor='grabbing';});
+  window.addEventListener('pointermove',e=>{if(!dragging)return;cameraAngle-=(e.clientX-lastX)*0.009;cameraTilt=Math.max(0.08,Math.min(1.3,cameraTilt-(e.clientY-lastY)*0.005));lastX=e.clientX;lastY=e.clientY;updateCamera();});
+  window.addEventListener('pointerup',()=>{dragging=false;threeContainer.style.cursor='grab';});
+  window.addEventListener('resize',()=>{if(!threeContainer.clientWidth)return;camera.aspect=threeContainer.clientWidth/threeContainer.clientHeight;camera.updateProjectionMatrix();renderer.setSize(threeContainer.clientWidth,threeContainer.clientHeight);});
+  updateCamera();buildBox();spawnMolecules();animLoop();
+}
+function updateCamera(){camera.position.x=Math.sin(cameraAngle)*cameraDist;camera.position.z=Math.cos(cameraAngle)*cameraDist;camera.position.y=2+cameraTilt*9;camera.lookAt(0,0,0);}
+function buildBox(){
+  if(boxWalls)scene.remove(boxWalls);const B=getBoxSize()/2,group=new THREE.Group();
+  const edgeMat=new THREE.LineBasicMaterial({color:0x00e5ff,transparent:true,opacity:0.5});
+  const corners=[[-B,-B,-B],[B,-B,-B],[B,B,-B],[-B,B,-B],[-B,-B,B],[B,-B,B],[B,B,B],[-B,B,B]];
+  [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]].forEach(([a,b])=>{
+    const geo=new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(...corners[a]),new THREE.Vector3(...corners[b])]);group.add(new THREE.Line(geo,edgeMat));
+  });
+  const faceMat=new THREE.MeshBasicMaterial({color:0x003344,transparent:true,opacity:0.08,side:THREE.DoubleSide});
+  [[0,1,2,3],[4,5,6,7],[0,1,5,4],[2,3,7,6],[0,3,7,4],[1,2,6,5]].forEach(fi=>{
+    const geo=new THREE.BufferGeometry(),verts=new Float32Array([...corners[fi[0]],...corners[fi[1]],...corners[fi[2]],...corners[fi[0]],...corners[fi[2]],...corners[fi[3]]]);
+    geo.setAttribute('position',new THREE.BufferAttribute(verts,3));group.add(new THREE.Mesh(geo,faceMat));
+  });
+  boxWalls=group;scene.add(group);
+}
+function spawnMolecules(){
+  molMeshes.forEach(m=>scene.remove(m));molMeshes=[];molecules=[];
+  const N=getNmol(),T=getTemp(),B=getBoxSize()/2-0.3;
+  const geo=new THREE.SphereGeometry(0.18,12,10);
+  for(let i=0;i<N;i++){
+    const x=(Math.random()-0.5)*2*B,y=(Math.random()-0.5)*2*B,z=(Math.random()-0.5)*2*B;
+    const {vx,vy,vz}=randomVelocity(T),speed=Math.sqrt(vx*vx+vy*vy+vz*vz);
+    const mat=new THREE.MeshStandardMaterial({color:speedColor(speed,T),emissive:speedColor(speed,T),emissiveIntensity:0.4,metalness:0.3,roughness:0.4});
+    const mesh=new THREE.Mesh(geo,mat);mesh.position.set(x,y,z);mesh.castShadow=true;scene.add(mesh);molMeshes.push(mesh);molecules.push({x,y,z,vx,vy,vz,speed});
+  }
+}
+function speedColor(speed,T){
+  const vRms=Math.sqrt(3*kB*T/MASS),t=Math.min(1,speed/vRms/1.5);
+  let r,g,b;
+  if(t<0.25){const s=t/0.25;r=0;g=s;b=1;}else if(t<0.5){const s=(t-.25)/.25;r=0;g=1;b=1-s;}else if(t<0.75){const s=(t-.5)/.25;r=s;g=1;b=0;}else{const s=(t-.75)/.25;r=1;g=1-s;b=0;}
+  return new THREE.Color(r,g,b);
+}
+function stepPhysics(dt){
+  const B=getBoxSize()/2-0.18,T=getTemp(),SCALE=1e-2,N=molecules.length;
+  let wallHits=0;
+  for(let i=0;i<N;i++){
+    const m=molecules[i];m.x+=m.vx*SCALE*dt;m.y+=m.vy*SCALE*dt;m.z+=m.vz*SCALE*dt;
+    if(m.x>B){m.x=B;m.vx=-Math.abs(m.vx);wallHits++;}if(m.x<-B){m.x=-B;m.vx=Math.abs(m.vx);wallHits++;}
+    if(m.y>B){m.y=B;m.vy=-Math.abs(m.vy);wallHits++;}if(m.y<-B){m.y=-B;m.vy=Math.abs(m.vy);wallHits++;}
+    if(m.z>B){m.z=B;m.vz=-Math.abs(m.vz);wallHits++;}if(m.z<-B){m.z=-B;m.vz=Math.abs(m.vz);wallHits++;}
+    molMeshes[i].position.set(m.x,m.y,m.z);
+    const sp=Math.sqrt(m.vx*m.vx+m.vy*m.vy+m.vz*m.vz);m.speed=sp;
+    const col=speedColor(sp,T);molMeshes[i].material.color.set(col);molMeshes[i].material.emissive.set(col);
+  }
+  for(let c=0;c<Math.min(N,20);c++){
+    const i=Math.floor(Math.random()*N),j=Math.floor(Math.random()*N);if(i===j)continue;
+    const mi=molecules[i],mj=molecules[j],dx=mi.x-mj.x,dy=mi.y-mj.y,dz=mi.z-mj.z,dist2=dx*dx+dy*dy+dz*dz;
+    if(dist2<0.36*0.36){
+      const dist=Math.sqrt(dist2)||0.001,nx=dx/dist,ny=dy/dist,nz=dz/dist;
+      const dvx=mi.vx-mj.vx,dvy=mi.vy-mj.vy,dvz=mi.vz-mj.vz,dot=dvx*nx+dvy*ny+dvz*nz;
+      if(dot<0){mi.vx-=dot*nx;mi.vy-=dot*ny;mi.vz-=dot*nz;mj.vx+=dot*nx;mj.vy+=dot*ny;mj.vz+=dot*nz;const sep=(0.37-dist)/2;mi.x+=nx*sep;mi.y+=ny*sep;mi.z+=nz*sep;mj.x-=nx*sep;mj.y-=ny*sep;mj.z-=nz*sep;}
+    }
+  }
+  collisionCount+=wallHits;
+}
+let readoutTimer=0;
+function updateReadout(dt){
+  readoutTimer+=dt;if(readoutTimer<0.25)return;readoutTimer=0;
+  const T=getTemp(),N=molecules.length,V=Math.pow(getBoxSize(),3),ke=1.5*kB*T;
+  let sumV2=0;molecules.forEach(m=>sumV2+=m.vx*m.vx+m.vy*m.vy+m.vz*m.vz);
+  const vRmsSI=Math.sqrt(sumV2/N),P=N*kB*T/V,collPerSec=Math.round(collisionCount/0.25);
+  collisionCount=0;
+  document.getElementById('r-ke').textContent=(ke*1e21).toFixed(2)+' zJ';
+  document.getElementById('r-vrms').textContent=vRmsSI.toFixed(0)+' m/s';
+  document.getElementById('r-pres').textContent=P.toFixed(2)+' Pa';
+  document.getElementById('r-coll').textContent=collPerSec;
+  updateSpeedDistribution();
+}
+const N_BINS=12;
+function updateSpeedDistribution(){
+  const T=getTemp(),vRms=Math.sqrt(3*kB*T/MASS),maxSpeed=vRms*2.5;
+  const bins=new Array(N_BINS).fill(0);
+  molecules.forEach(m=>{const sp=Math.sqrt(m.vx*m.vx+m.vy*m.vy+m.vz*m.vz),b=Math.min(N_BINS-1,Math.floor((sp/maxSpeed)*N_BINS));bins[b]++;});
+  const maxBin=Math.max(1,...bins),container=document.getElementById('dist-bars');
+  if(container.children.length!==N_BINS){container.innerHTML=bins.map((_,i)=>{const t=i/(N_BINS-1),h=Math.round(240-t*240);return`<div class="dist-bar" style="background:hsl(${h},100%,55%)"></div>`;}).join('');}
+  Array.from(container.children).forEach((bar,i)=>{bar.style.height=(bins[i]/maxBin*100)+'%';});
+}
+document.getElementById('temp').addEventListener('input',e=>{document.getElementById('temp-val').textContent=e.target.value;if(molecules.length>0)rescaleVelocities(parseFloat(e.target.value));});
+document.getElementById('nmol').addEventListener('input',e=>{document.getElementById('nmol-val').textContent=e.target.value;});
+document.getElementById('boxsize').addEventListener('input',e=>{document.getElementById('boxsize-val').textContent=e.target.value;if(scene)buildBox();});
+function rescaleVelocities(newT){
+  if(molecules.length===0)return;let sumV2=0;molecules.forEach(m=>sumV2+=m.vx*m.vx+m.vy*m.vy+m.vz*m.vz);
+  const currentVrms2=sumV2/molecules.length,targetVrms2=3*kB*newT/MASS;if(currentVrms2<1e-10)return;
+  const scale=Math.sqrt(targetVrms2/currentVrms2);molecules.forEach(m=>{m.vx*=scale;m.vy*=scale;m.vz*=scale;});
+}
+let lastTS=null;
+function animLoop(ts){
+  requestAnimationFrame(animLoop);const dt=lastTS?Math.min((ts-lastTS)/1000,0.05):0.016;lastTS=ts;
+  if(simRunning){stepPhysics(dt);updateReadout(dt);}
+  if(renderer&&scene&&camera)renderer.render(scene,camera);
+}
+function resetSim(){
+  simRunning=false;collisionCount=0;readoutTimer=0;document.getElementById('play-btn').textContent='▶ Start';
+  if(scene){buildBox();spawnMolecules();}
+  const T=getTemp(),ke=1.5*kB*T,vRms=Math.sqrt(3*kB*T/MASS);
+  document.getElementById('r-ke').textContent=(ke*1e21).toFixed(2)+' zJ';document.getElementById('r-vrms').textContent=vRms.toFixed(0)+' m/s';
+  document.getElementById('r-pres').textContent='—';document.getElementById('r-coll').textContent='—';
+}
+document.getElementById('play-btn').addEventListener('click',()=>{simRunning=!simRunning;document.getElementById('play-btn').textContent=simRunning?'⏸ Pause':'▶ Start';if(simRunning){score+=2;updateStats();}});
+document.getElementById('reset-btn').addEventListener('click',resetSim);
+let threeReady=false;
+function ensureThree(){if(threeReady)return;const w=threeContainer.clientWidth||threeContainer.offsetWidth;if(w===0){setTimeout(ensureThree,150);return;}threeReady=true;initThree();resetSim();}
+document.querySelector('.tab[data-tab="sim"]').addEventListener('click',()=>setTimeout(ensureThree,150));
+setTimeout(ensureThree,500);
+const pairs=[{term:'KE_avg = (3/2)k_BT',def:'Average kinetic energy'},{term:'v_rms = √(3RT/M)',def:'Root mean square speed'},{term:'Mean Free Path',def:'Avg distance between collisions'},{term:'Equipartition',def:'(1/2)k_BT per degree of freedom'},{term:'Ideal Gas',def:'No intermolecular forces'},{term:'Boltzmann Constant',def:'k_B = 1.38×10⁻²³ J/K'}];
+let matchSelected=null,matchedCount=0;
+function shuffle(a){return a.sort(()=>Math.random()-0.5);}
+function renderMatch(){
+  matchedCount=0;matchSelected=null;const grid=document.getElementById('match-grid'),items=[];
+  pairs.forEach((p,i)=>{items.push({type:'term',text:p.term,id:i});items.push({type:'def',text:p.def,id:i});});
+  shuffle(items);grid.innerHTML=items.map(it=>`<div class="match-card" data-type="${it.type}" data-id="${it.id}">${it.text}</div>`).join('');
+  grid.querySelectorAll('.match-card').forEach(c=>c.addEventListener('click',()=>handleMatch(c)));
+}
+function handleMatch(card){
+  if(card.classList.contains('matched'))return;
+  if(matchSelected===card){card.classList.remove('selected');matchSelected=null;return;}
+  if(!matchSelected){card.classList.add('selected');matchSelected=card;return;}
+  if(card.dataset.id===matchSelected.dataset.id&&card.dataset.type!==matchSelected.dataset.type){
+    card.classList.add('matched');matchSelected.classList.add('matched');matchSelected.classList.remove('selected');matchSelected=null;
+    matchedCount++;score+=8;streak++;updateStats();if(matchedCount===pairs.length){setTimeout(()=>showWin('All matched! +20 bonus 🎯'),400);score+=20;updateStats();}
+  }else{
+    card.classList.add('wrong');matchSelected.classList.add('wrong');streak=0;updateStats();
+    const prev=matchSelected;setTimeout(()=>{card.classList.remove('wrong','selected');prev.classList.remove('wrong','selected');},600);matchSelected=null;
+  }
+}
+document.getElementById('match-reset').addEventListener('click',renderMatch);
+renderMatch();
+</script>
+</body>
+</html>

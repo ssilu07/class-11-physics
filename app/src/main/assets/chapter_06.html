@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Energy Engine — Work, Energy & Power Game</title>
+<link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Space+Mono:wght@400;700&family=Sora:wght@300;500;700;800&display=swap" rel="stylesheet">
+<script src="three.min.js"></script>
+<style>
+  :root{
+    --bg:#0a1929;
+    --bg2:#0f2942;
+    --accent:#00e5a0;
+    --amber:#ffb627;
+    --magenta:#e63946;
+    --blue:#4361ee;
+    --text:#e8f1f2;
+    --muted:#8b9bb4;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{overflow-x:hidden}
+  body{
+    font-family:'Sora',sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    min-height:100vh;
+    background-image:
+      radial-gradient(circle at 20% 20%, rgba(0,229,160,.15), transparent 45%),
+      radial-gradient(circle at 80% 80%, rgba(255,182,39,.12), transparent 45%),
+      radial-gradient(circle at 50% 50%, rgba(67,97,238,.08), transparent 50%);
+    padding:20px 16px 60px;
+  }
+  body::before{
+    content:'';
+    position:fixed;inset:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size:45px 45px;
+    pointer-events:none;
+    z-index:0;
+  }
+  .container{position:relative;z-index:1;max-width:900px;margin:0 auto}
+
+  header{text-align:center;margin-bottom:28px;padding:20px 0}
+  .title{
+    font-family:'Russo One',sans-serif;
+    font-size:clamp(2rem, 7vw, 3.6rem);
+    line-height:1;letter-spacing:1px;
+    background:linear-gradient(135deg, var(--amber), var(--accent), var(--blue));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    text-shadow:0 0 60px rgba(0,229,160,.3);
+  }
+  .subtitle{
+    font-family:'Space Mono',monospace;
+    color:var(--accent);font-size:.85rem;margin-top:8px;
+    letter-spacing:2px;text-transform:uppercase;
+  }
+  .stats{display:flex;justify-content:center;gap:16px;margin-top:18px;flex-wrap:wrap}
+  .stat{
+    background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.1);
+    border-radius:12px;padding:8px 16px;
+    font-family:'Space Mono',monospace;font-size:.8rem;
+  }
+  .stat strong{color:var(--amber);font-size:1rem}
+
+  .tabs{
+    display:flex;gap:8px;margin-bottom:24px;
+    background:rgba(255,255,255,.04);
+    padding:6px;border-radius:16px;
+    border:1px solid rgba(255,255,255,.08);
+    overflow-x:auto;
+  }
+  .tab{
+    flex:1;min-width:fit-content;padding:12px 14px;
+    border:none;background:transparent;
+    color:var(--muted);cursor:pointer;
+    font-family:'Sora',sans-serif;font-weight:700;font-size:.9rem;
+    border-radius:10px;transition:all .25s;white-space:nowrap;
+  }
+  .tab.active{
+    background:linear-gradient(135deg, var(--accent), var(--amber));
+    color:#0a1929;
+    box-shadow:0 4px 20px rgba(0,229,160,.4);
+  }
+
+  .panel{
+    background:rgba(255,255,255,.03);
+    border:1px solid rgba(255,255,255,.1);
+    border-radius:24px;padding:24px;
+    backdrop-filter:blur(10px);
+    display:none;animation:fadeIn .4s ease;
+  }
+  .panel.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  .panel h2{font-family:'Russo One',sans-serif;font-size:1.4rem;margin-bottom:8px;color:var(--amber);letter-spacing:1px}
+  .panel-sub{color:var(--muted);font-size:.9rem;margin-bottom:20px}
+
+  .question-box{
+    background:linear-gradient(135deg, rgba(0,229,160,.1), rgba(67,97,238,.06));
+    border:1px solid rgba(255,255,255,.1);
+    border-radius:16px;padding:20px;margin-bottom:16px;
+  }
+  .q-text{font-size:1.05rem;font-weight:500;line-height:1.5;margin-bottom:6px}
+  .q-meta{font-family:'Space Mono',monospace;font-size:.75rem;color:var(--accent);letter-spacing:1px}
+  .options{display:grid;gap:10px}
+  .option{
+    background:rgba(255,255,255,.05);
+    border:2px solid rgba(255,255,255,.1);
+    color:var(--text);padding:14px 18px;border-radius:12px;
+    text-align:left;cursor:pointer;
+    font-family:'Sora',sans-serif;font-size:.95rem;
+    transition:all .2s;
+  }
+  .option:hover{background:rgba(255,255,255,.08);border-color:var(--accent);transform:translateX(4px)}
+  .option.correct{background:rgba(0,229,160,.18);border-color:var(--accent);color:var(--accent)}
+  .option.wrong{background:rgba(230,57,70,.18);border-color:var(--magenta);color:var(--magenta)}
+  .option:disabled{cursor:not-allowed}
+  .feedback{margin-top:14px;padding:14px;border-radius:12px;font-size:.9rem;line-height:1.5;display:none}
+  .feedback.show{display:block;animation:fadeIn .3s}
+  .feedback.correct{background:rgba(0,229,160,.1);border-left:4px solid var(--accent)}
+  .feedback.wrong{background:rgba(230,57,70,.1);border-left:4px solid var(--magenta)}
+  .next-btn{
+    margin-top:14px;width:100%;padding:14px;border:none;border-radius:12px;
+    background:linear-gradient(135deg, var(--amber), var(--accent));
+    color:#0a1929;font-weight:800;font-size:1rem;cursor:pointer;
+    font-family:'Russo One',sans-serif;letter-spacing:1px;display:none;
+  }
+  .next-btn.show{display:block}
+
+  /* FLASHCARDS */
+  .flash-stage{perspective:1200px;margin:10px 0 18px}
+  .flash-card{
+    position:relative;width:100%;height:280px;
+    transform-style:preserve-3d;
+    transition:transform .6s cubic-bezier(.4,0,.2,1);
+    cursor:pointer;
+  }
+  .flash-card.flipped{transform:rotateY(180deg)}
+  .flash-face{
+    position:absolute;inset:0;
+    backface-visibility:hidden;-webkit-backface-visibility:hidden;
+    border-radius:20px;padding:24px;
+    display:flex;flex-direction:column;
+    justify-content:center;align-items:center;
+    text-align:center;
+    border:1px solid rgba(255,255,255,.15);
+  }
+  .flash-front{
+    background:linear-gradient(135deg, rgba(0,229,160,.22), rgba(255,182,39,.15));
+    box-shadow:0 20px 60px rgba(0,229,160,.2);
+  }
+  .flash-back{
+    background:linear-gradient(135deg, rgba(67,97,238,.22), rgba(0,229,160,.15));
+    transform:rotateY(180deg);
+    box-shadow:0 20px 60px rgba(67,97,238,.2);
+  }
+  .flash-label{
+    font-family:'Space Mono',monospace;
+    font-size:.7rem;letter-spacing:2px;
+    color:var(--amber);text-transform:uppercase;
+    margin-bottom:14px;opacity:.85;
+  }
+  .flash-back .flash-label{color:var(--accent)}
+  .flash-term{
+    font-family:'Russo One',sans-serif;
+    font-size:clamp(1.4rem, 5vw, 2rem);
+    line-height:1.1;
+    background:linear-gradient(135deg, #fff, var(--amber));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    margin-bottom:10px;
+  }
+  .flash-formula{
+    font-family:'Space Mono',monospace;
+    font-size:1.05rem;color:var(--accent);
+    background:rgba(0,0,0,.35);
+    padding:8px 14px;border-radius:8px;margin-top:8px;
+  }
+  .flash-def{font-size:1rem;line-height:1.55;color:var(--text);max-width:90%}
+  .flash-example{margin-top:14px;font-size:.82rem;color:var(--muted);font-style:italic;line-height:1.4}
+  .flash-tap{
+    position:absolute;bottom:14px;
+    font-size:.7rem;color:var(--muted);
+    font-family:'Space Mono',monospace;letter-spacing:1px;
+  }
+  .flash-nav{display:flex;gap:10px;align-items:center;justify-content:space-between}
+  .flash-arrow{
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.15);
+    color:var(--text);width:48px;height:48px;border-radius:50%;
+    font-size:1.2rem;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:all .2s;
+  }
+  .flash-arrow:hover{background:var(--amber);color:#0a1929;transform:scale(1.05)}
+  .flash-arrow:disabled{opacity:.3;cursor:not-allowed}
+  .flash-progress{flex:1;background:rgba(255,255,255,.06);height:6px;border-radius:3px;overflow:hidden}
+  .flash-progress-bar{height:100%;background:linear-gradient(90deg, var(--accent), var(--amber));transition:width .3s}
+  .flash-counter{font-family:'Space Mono',monospace;font-size:.8rem;color:var(--muted);text-align:center;margin-top:10px}
+  .flash-mark{margin-top:14px;display:flex;gap:8px}
+  .mark-btn{
+    flex:1;padding:10px;border:none;border-radius:10px;
+    font-family:'Sora',sans-serif;font-weight:700;font-size:.85rem;
+    cursor:pointer;transition:transform .15s;
+  }
+  .mark-btn:active{transform:scale(.96)}
+  .mark-known{background:rgba(0,229,160,.15);color:var(--accent);border:1px solid var(--accent)}
+  .mark-review{background:rgba(230,57,70,.15);color:var(--magenta);border:1px solid var(--magenta)}
+
+  /* SIMULATION */
+  .sim-controls{display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:12px;margin-bottom:20px}
+  .control{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);padding:12px;border-radius:12px}
+  .control label{display:block;font-family:'Space Mono',monospace;font-size:.7rem;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+  .control input[type=range]{width:100%;accent-color:var(--amber)}
+  .control .val{font-family:'Russo One',sans-serif;color:var(--amber);font-size:1.1rem}
+  #three-container canvas{display:block}
+  .sim-buttons{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+  .sim-btn{
+    flex:1;min-width:100px;padding:12px;border:none;border-radius:10px;
+    font-family:'Sora',sans-serif;font-weight:700;cursor:pointer;
+    transition:transform .15s;
+  }
+  .sim-btn:active{transform:scale(.96)}
+  .btn-play{background:var(--accent);color:#0a1929}
+  .btn-reset{background:rgba(255,255,255,.1);color:var(--text)}
+  .readout{margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit, minmax(110px, 1fr));gap:8px}
+  .read-card{
+    background:rgba(67,97,238,.08);
+    border:1px solid rgba(67,97,238,.2);
+    border-radius:10px;padding:10px;text-align:center;
+  }
+  .read-card .lbl{font-size:.7rem;color:var(--blue);font-family:'Space Mono',monospace}
+  .read-card .num{font-family:'Russo One',sans-serif;font-size:1rem;color:var(--text)}
+
+  /* Energy bars */
+  .energy-bars{margin-top:14px;display:grid;gap:8px}
+  .bar-row{display:grid;grid-template-columns:80px 1fr 70px;align-items:center;gap:10px;font-family:'Space Mono',monospace;font-size:.78rem}
+  .bar-label{color:var(--muted)}
+  .bar-track{height:14px;background:rgba(255,255,255,.06);border-radius:7px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:7px;transition:width .15s linear}
+  .bar-ke .bar-fill{background:linear-gradient(90deg, var(--amber), #ff8c00)}
+  .bar-pe .bar-fill{background:linear-gradient(90deg, var(--blue), #00bfff)}
+  .bar-total .bar-fill{background:linear-gradient(90deg, var(--accent), #00ffcc)}
+  .bar-val{text-align:right;color:var(--text);font-weight:700}
+
+  /* MATCH */
+  .match-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .match-card{
+    background:rgba(255,255,255,.05);
+    border:2px solid rgba(255,255,255,.1);
+    padding:14px;border-radius:12px;
+    cursor:pointer;font-size:.85rem;
+    text-align:center;min-height:70px;
+    display:flex;align-items:center;justify-content:center;
+    transition:all .2s;
+  }
+  .match-card:hover{border-color:var(--accent)}
+  .match-card.selected{border-color:var(--amber);background:rgba(255,182,39,.15)}
+  .match-card.matched{background:rgba(0,229,160,.15);border-color:var(--accent);color:var(--accent);cursor:default;opacity:.7}
+  .match-card.wrong{background:rgba(230,57,70,.15);border-color:var(--magenta);animation:shake .3s}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+  .reset-link{
+    display:block;text-align:center;margin-top:18px;
+    color:var(--muted);font-size:.85rem;cursor:pointer;
+    text-decoration:underline;background:none;border:none;width:100%;
+  }
+
+  .win-overlay{
+    position:fixed;inset:0;background:rgba(10,25,41,.95);
+    display:none;align-items:center;justify-content:center;
+    z-index:100;padding:20px;
+  }
+  .win-overlay.show{display:flex;animation:fadeIn .4s}
+  .win-card{
+    background:linear-gradient(135deg, var(--accent), var(--amber));
+    color:#0a1929;padding:30px;border-radius:20px;text-align:center;max-width:340px;
+  }
+  .win-card h2{font-family:'Russo One',sans-serif;font-size:2rem;margin-bottom:8px}
+  .win-card button{
+    margin-top:16px;padding:12px 28px;border:none;border-radius:10px;
+    background:#0a1929;color:var(--amber);font-weight:700;cursor:pointer;
+    font-family:'Sora',sans-serif;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1 class="title">ENERGY<br>ENGINE</h1>
+    <div class="subtitle">// Class 11 Physics · Work, Energy & Power</div>
+    <div class="stats">
+      <div class="stat">SCORE <strong id="score">0</strong></div>
+      <div class="stat">STREAK <strong id="streak">0</strong>🔥</div>
+      <div class="stat">LEVEL <strong id="level">1</strong></div>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="quiz">🧠 Quiz</button>
+    <button class="tab" data-tab="flash">🎴 Cards</button>
+    <button class="tab" data-tab="sim">🎢 Coaster</button>
+    <button class="tab" data-tab="match">🔗 Match</button>
+  </div>
+
+  <section class="panel active" id="quiz">
+    <h2>BRAIN BOOST</h2>
+    <p class="panel-sub">Test your knowledge of work, energy and power — +10 per correct answer!</p>
+    <div id="quiz-box"></div>
+  </section>
+
+  <section class="panel" id="flash">
+    <h2>FLASH CARDS</h2>
+    <p class="panel-sub">Tap a card to flip it. Definitions, formulas and examples all in one place.</p>
+    <div class="flash-stage">
+      <div class="flash-card" id="flash-card">
+        <div class="flash-face flash-front">
+          <div class="flash-label">CONCEPT</div>
+          <div class="flash-term" id="f-term">Loading…</div>
+          <div class="flash-tap">tap to flip ↻</div>
+        </div>
+        <div class="flash-face flash-back">
+          <div class="flash-label">EXPLANATION</div>
+          <div class="flash-def" id="f-def"></div>
+          <div class="flash-formula" id="f-formula"></div>
+          <div class="flash-example" id="f-example"></div>
+          <div class="flash-tap">tap to flip back ↺</div>
+        </div>
+      </div>
+    </div>
+    <div class="flash-nav">
+      <button class="flash-arrow" id="f-prev">←</button>
+      <div class="flash-progress"><div class="flash-progress-bar" id="f-bar"></div></div>
+      <button class="flash-arrow" id="f-next">→</button>
+    </div>
+    <div class="flash-counter" id="f-counter">1 / 12</div>
+    <div class="flash-mark">
+      <button class="mark-btn mark-review" id="f-review">🔁 Need Review</button>
+      <button class="mark-btn mark-known" id="f-known">✓ Got It (+5)</button>
+    </div>
+  </section>
+
+  <section class="panel" id="sim">
+    <h2>ROLLER COASTER LAB — 3D</h2>
+    <p class="panel-sub">Watch KE ↔ PE transform on a coaster track. Adjust mass and starting height. <span style="color:var(--amber)">Drag to rotate the view</span></p>
+    <div class="sim-controls">
+      <div class="control">
+        <label>Mass (m)</label>
+        <input type="range" id="m" min="1" max="20" value="5" step="0.5">
+        <div><span class="val" id="m-val">5</span> <span style="color:var(--muted);font-size:.8rem">kg</span></div>
+      </div>
+      <div class="control">
+        <label>Start Height (h)</label>
+        <input type="range" id="h" min="2" max="10" value="7" step="0.5">
+        <div><span class="val" id="h-val">7</span> <span style="color:var(--muted);font-size:.8rem">m</span></div>
+      </div>
+      <div class="control">
+        <label>Friction</label>
+        <input type="range" id="fric" min="0" max="0.15" value="0" step="0.01">
+        <div><span class="val" id="fric-val">0</span></div>
+      </div>
+    </div>
+    <div id="three-container" style="width:100%;height:380px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.1);background:linear-gradient(180deg, #0a1929 0%, #0f2942 100%);position:relative;cursor:grab;touch-action:none"></div>
+    <div class="sim-buttons">
+      <button class="sim-btn btn-play" id="play-btn">▶ Release</button>
+      <button class="sim-btn btn-reset" id="reset-btn">↺ Reset</button>
+    </div>
+
+    <div class="energy-bars">
+      <div class="bar-row bar-ke">
+        <div class="bar-label">KE</div>
+        <div class="bar-track"><div class="bar-fill" id="ke-bar" style="width:0%"></div></div>
+        <div class="bar-val" id="ke-val">0 J</div>
+      </div>
+      <div class="bar-row bar-pe">
+        <div class="bar-label">PE</div>
+        <div class="bar-track"><div class="bar-fill" id="pe-bar" style="width:0%"></div></div>
+        <div class="bar-val" id="pe-val">0 J</div>
+      </div>
+      <div class="bar-row bar-total">
+        <div class="bar-label">TOTAL</div>
+        <div class="bar-track"><div class="bar-fill" id="te-bar" style="width:0%"></div></div>
+        <div class="bar-val" id="te-val">0 J</div>
+      </div>
+    </div>
+
+    <div class="readout" style="margin-top:14px">
+      <div class="read-card"><div class="lbl">Speed</div><div class="num" id="r-speed">0 m/s</div></div>
+      <div class="read-card"><div class="lbl">Height</div><div class="num" id="r-height">0 m</div></div>
+      <div class="read-card"><div class="lbl">Power (avg)</div><div class="num" id="r-power">0 W</div></div>
+    </div>
+    <p style="margin-top:14px;font-size:.8rem;color:var(--muted);text-align:center;font-family:'Space Mono',monospace">
+      KE = ½mv² &nbsp;|&nbsp; PE = mgh &nbsp;|&nbsp; Total = KE + PE (constant if no friction)
+    </p>
+  </section>
+
+  <section class="panel" id="match">
+    <h2>CONCEPT MATCH</h2>
+    <p class="panel-sub">Match each term with its correct meaning</p>
+    <div class="match-grid" id="match-grid"></div>
+    <button class="reset-link" id="match-reset">↺ Restart match game</button>
+  </section>
+
+</div>
+
+<div class="win-overlay" id="win">
+  <div class="win-card">
+    <h2>⚡ LEVEL UP!</h2>
+    <p id="win-msg">You're crushing it!</p>
+    <button onclick="document.getElementById('win').classList.remove('show')">Continue</button>
+  </div>
+</div>
+
+<script>
+let score = 0, streak = 0, level = 1;
+function updateStats(){
+  document.getElementById('score').textContent = score;
+  document.getElementById('streak').textContent = streak;
+  document.getElementById('level').textContent = level;
+  const newLevel = Math.floor(score/50)+1;
+  if(newLevel > level){ level = newLevel; showWin(`Level ${level} unlocked! 🚀`); }
+}
+function showWin(msg){
+  document.getElementById('win-msg').textContent = msg;
+  document.getElementById('win').classList.add('show');
+}
+
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById(t.dataset.tab).classList.add('active');
+  });
+});
+
+// QUIZ
+const questions = [
+  {
+    q: "What is the SI unit of work?",
+    opts: ["Newton (N)", "Joule (J)", "Watt (W)", "Pascal (Pa)"],
+    correct: 1,
+    explain: "Work = Force × Displacement. Its SI unit is the joule (J) = N·m."
+  },
+  {
+    q: "A force of 10 N moves a body by 5 m in the same direction. Work done is:",
+    opts: ["2 J", "15 J", "50 J", "0.5 J"],
+    correct: 2,
+    explain: "W = F × s × cosθ. Since θ = 0°, W = 10 × 5 × 1 = 50 J"
+  },
+  {
+    q: "If a force is perpendicular to the displacement, the work done is:",
+    opts: ["Maximum", "Zero", "Negative", "Equal to force"],
+    correct: 1,
+    explain: "W = Fs·cos(90°) = 0. Examples: tension in circular motion, gravity on horizontal motion."
+  },
+  {
+    q: "The kinetic energy of an object depends on its:",
+    opts: ["Position only", "Mass only", "Mass and velocity", "Acceleration"],
+    correct: 2,
+    explain: "KE = ½mv². It depends on both mass and the square of velocity."
+  },
+  {
+    q: "If the speed of a body is doubled, its kinetic energy becomes:",
+    opts: ["Twice", "Half", "Four times", "Same"],
+    correct: 2,
+    explain: "KE ∝ v². If v doubles, KE becomes (2)² = 4 times."
+  },
+  {
+    q: "Potential energy of a body at height h above the ground is given by:",
+    opts: ["½mv²", "mgh", "mg/h", "m/gh"],
+    correct: 1,
+    explain: "Gravitational PE = mgh, where m = mass, g = 9.8 m/s², h = height."
+  },
+  {
+    q: "Work-Energy Theorem states that work done by net force equals:",
+    opts: ["Change in momentum", "Change in kinetic energy", "Change in potential energy", "Power × time"],
+    correct: 1,
+    explain: "W_net = ΔKE = KE_final − KE_initial. This is the work-energy theorem."
+  },
+  {
+    q: "The SI unit of power is:",
+    opts: ["Joule", "Newton", "Watt", "Pascal"],
+    correct: 2,
+    explain: "Power = Work / Time. SI unit is watt (W) = J/s."
+  },
+  {
+    q: "1 horsepower is approximately equal to:",
+    opts: ["100 W", "746 W", "1000 W", "9.8 W"],
+    correct: 1,
+    explain: "1 HP ≈ 746 watts. Useful for engine and motor ratings."
+  },
+  {
+    q: "In an elastic collision, which quantities are conserved?",
+    opts: ["Only momentum", "Only kinetic energy", "Both momentum and kinetic energy", "Neither"],
+    correct: 2,
+    explain: "Elastic collision conserves BOTH momentum and kinetic energy. Inelastic conserves only momentum."
+  }
+];
+let qIdx = 0;
+function renderQuestion(){
+  if(qIdx >= questions.length) qIdx = 0;
+  const q = questions[qIdx];
+  const box = document.getElementById('quiz-box');
+  box.innerHTML = `
+    <div class="question-box">
+      <div class="q-meta">QUESTION ${qIdx+1} / ${questions.length}</div>
+      <div class="q-text">${q.q}</div>
+    </div>
+    <div class="options">
+      ${q.opts.map((o,i)=>`<button class="option" data-i="${i}">${String.fromCharCode(65+i)}. ${o}</button>`).join('')}
+    </div>
+    <div class="feedback" id="fb"></div>
+    <button class="next-btn" id="next">Next Question →</button>
+  `;
+  box.querySelectorAll('.option').forEach(btn=>btn.addEventListener('click',()=>handleAnswer(btn)));
+  document.getElementById('next').addEventListener('click', ()=>{ qIdx++; renderQuestion(); });
+}
+function handleAnswer(btn){
+  const i = parseInt(btn.dataset.i);
+  const q = questions[qIdx];
+  const fb = document.getElementById('fb');
+  document.querySelectorAll('.option').forEach(b=>b.disabled = true);
+  if(i === q.correct){
+    btn.classList.add('correct');
+    fb.classList.add('show','correct');
+    fb.innerHTML = `✅ <strong>Correct!</strong> ${q.explain}`;
+    score += 10; streak++;
+    if(streak>0 && streak%3===0) score += 5;
+  } else {
+    btn.classList.add('wrong');
+    document.querySelectorAll('.option')[q.correct].classList.add('correct');
+    fb.classList.add('show','wrong');
+    fb.innerHTML = `❌ <strong>Incorrect.</strong> ${q.explain}`;
+    streak = 0;
+  }
+  updateStats();
+  document.getElementById('next').classList.add('show');
+}
+renderQuestion();
+
+// FLASHCARDS
+const flashcards = [
+  {
+    term: "Work",
+    def: "The product of force and the displacement in the direction of the force. Work is a scalar quantity.",
+    formula: "W = F · s · cosθ",
+    example: "Lifting a 5 kg box 2 m up does W = 5×9.8×2 = 98 J of work"
+  },
+  {
+    term: "Energy",
+    def: "The capacity of a body to do work. It is a scalar quantity, measured in joules.",
+    formula: "SI Unit: joule (J)",
+    example: "A stretched spring stores energy; a moving car has energy"
+  },
+  {
+    term: "Kinetic Energy (KE)",
+    def: "The energy possessed by an object due to its motion. Depends on mass and square of velocity.",
+    formula: "KE = ½ m v²",
+    example: "A 2 kg ball moving at 4 m/s has KE = ½×2×16 = 16 J"
+  },
+  {
+    term: "Potential Energy (PE)",
+    def: "The energy stored in a body due to its position or configuration. Gravitational PE depends on height.",
+    formula: "PE = m g h",
+    example: "A 1 kg ball at height 10 m has PE = 1×9.8×10 = 98 J"
+  },
+  {
+    term: "Work-Energy Theorem",
+    def: "The work done by the net force on a body equals the change in its kinetic energy.",
+    formula: "W_net = ΔKE = KE_f − KE_i",
+    example: "Pushing a stationary cart to 5 m/s — work done equals its final KE"
+  },
+  {
+    term: "Conservation of Energy",
+    def: "Energy can neither be created nor destroyed, only transformed from one form to another. Total energy of an isolated system remains constant.",
+    formula: "KE + PE = constant (no friction)",
+    example: "A pendulum: PE at top → KE at bottom → PE again"
+  },
+  {
+    term: "Conservative Force",
+    def: "A force for which work done depends only on initial and final positions, not on the path taken. PE can be defined for such forces.",
+    formula: "Work in closed loop = 0",
+    example: "Gravity, spring force, electrostatic force"
+  },
+  {
+    term: "Non-Conservative Force",
+    def: "A force for which work done depends on the path taken. Mechanical energy is not conserved in its presence.",
+    formula: "Energy is dissipated (often as heat)",
+    example: "Friction, air resistance, viscous drag"
+  },
+  {
+    term: "Power",
+    def: "The rate at which work is done, or energy is transferred. A scalar quantity.",
+    formula: "P = W / t = F · v",
+    example: "A 100 W bulb uses 100 joules of energy per second"
+  },
+  {
+    term: "Watt",
+    def: "The SI unit of power. One watt equals one joule of work done per second.",
+    formula: "1 W = 1 J/s",
+    example: "1 horsepower ≈ 746 W"
+  },
+  {
+    term: "Elastic Collision",
+    def: "A collision in which BOTH momentum and kinetic energy are conserved. Objects bounce off without energy loss.",
+    formula: "KE conserved, p conserved",
+    example: "Two billiard balls colliding (nearly elastic)"
+  },
+  {
+    term: "Inelastic Collision",
+    def: "A collision in which momentum is conserved but kinetic energy is NOT. Some KE converts to heat, sound, or deformation.",
+    formula: "p conserved, KE not conserved",
+    example: "Two clay balls sticking together after collision"
+  }
+];
+let fIdx = 0, fKnown = new Set();
+function renderFlash(){
+  const c = flashcards[fIdx];
+  document.getElementById('f-term').textContent = c.term;
+  document.getElementById('f-def').textContent = c.def;
+  document.getElementById('f-formula').textContent = c.formula;
+  document.getElementById('f-example').textContent = '📌 ' + c.example;
+  document.getElementById('flash-card').classList.remove('flipped');
+  document.getElementById('f-counter').textContent = `${fIdx+1} / ${flashcards.length}`;
+  document.getElementById('f-bar').style.width = `${((fIdx+1)/flashcards.length)*100}%`;
+  document.getElementById('f-prev').disabled = fIdx === 0;
+  document.getElementById('f-next').disabled = fIdx === flashcards.length-1;
+}
+document.getElementById('flash-card').addEventListener('click', e=>e.currentTarget.classList.toggle('flipped'));
+document.getElementById('f-prev').addEventListener('click', e=>{e.stopPropagation();if(fIdx>0){fIdx--;renderFlash();}});
+document.getElementById('f-next').addEventListener('click', e=>{e.stopPropagation();if(fIdx<flashcards.length-1){fIdx++;renderFlash();}});
+document.getElementById('f-known').addEventListener('click', e=>{
+  e.stopPropagation();
+  if(!fKnown.has(fIdx)){
+    fKnown.add(fIdx); score+=5; streak++; updateStats();
+    if(fKnown.size === flashcards.length){
+      showWin('All cards mastered! 🏆 +25 bonus'); score+=25; updateStats();
+    }
+  }
+  if(fIdx < flashcards.length-1){ fIdx++; renderFlash(); }
+});
+document.getElementById('f-review').addEventListener('click', e=>{
+  e.stopPropagation();
+  if(fIdx < flashcards.length-1){ fIdx++; renderFlash(); }
+  else { fIdx = 0; renderFlash(); }
+});
+renderFlash();
+
+// ============ 3D ROLLER COASTER SIMULATION ============
+const threeContainer = document.getElementById('three-container');
+let scene, camera, renderer, cart, trackLine, trackCurve, hillMeshes = [];
+let cameraAngle = 0.7, cameraTilt = 0.45, cameraDist = 22;
+let simRunning = false, simT = 0, startT = 0;
+let simData = {speed:0, height:0, ke:0, pe:0, totalStart:0, runTime:0};
+
+function getParams(){
+  return {
+    m: parseFloat(document.getElementById('m').value),
+    h: parseFloat(document.getElementById('h').value),
+    fric: parseFloat(document.getElementById('fric').value)
+  };
+}
+
+function buildTrackPoints(startHeight){
+  const pts = [];
+  const xMin = -10, xMax = 10;
+  for(let i = 0; i <= 200; i++){
+    const t = i/200;
+    const x = xMin + (xMax - xMin)*t;
+    const norm = t;
+    const descent = startHeight * (1 - norm) * (1 - norm);
+    const hill = Math.max(0, 0.5*startHeight) * Math.exp(-Math.pow((norm-0.55)/0.12, 2)) * 0.35;
+    const endLift = 0.4;
+    const y = descent + hill + endLift * norm * norm;
+    pts.push(new THREE.Vector3(x, Math.max(0.3, y), 0));
+  }
+  return pts;
+}
+
+function initThree(){
+  scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0x0a1929, 25, 80);
+
+  const w = threeContainer.clientWidth;
+  const h = threeContainer.clientHeight;
+  camera = new THREE.PerspectiveCamera(50, w/h, 0.1, 200);
+
+  renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+  renderer.setSize(w, h);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  threeContainer.appendChild(renderer.domElement);
+
+  const ambient = new THREE.AmbientLight(0x6a8aaa, 0.5);
+  scene.add(ambient);
+  const sun = new THREE.DirectionalLight(0xffd9a0, 1.4);
+  sun.position.set(8, 15, 6);
+  sun.castShadow = true;
+  sun.shadow.mapSize.width = 1024;
+  sun.shadow.mapSize.height = 1024;
+  sun.shadow.camera.left = -15;
+  sun.shadow.camera.right = 15;
+  sun.shadow.camera.top = 15;
+  sun.shadow.camera.bottom = -5;
+  scene.add(sun);
+  const accent1 = new THREE.PointLight(0x00e5a0, 1.2, 25);
+  accent1.position.set(-8, 4, 4);
+  scene.add(accent1);
+  const accent2 = new THREE.PointLight(0xffb627, 0.8, 20);
+  accent2.position.set(8, 4, -4);
+  scene.add(accent2);
+
+  const groundGeo = new THREE.PlaneGeometry(80, 30);
+  const groundMat = new THREE.MeshStandardMaterial({color: 0x1a2f4a, roughness: 0.8, metalness: 0.1});
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI/2;
+  ground.position.y = -0.2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  const grid = new THREE.GridHelper(80, 40, 0x00e5a0, 0x2a3f5e);
+  grid.position.y = -0.18;
+  grid.material.opacity = 0.4;
+  grid.material.transparent = true;
+  scene.add(grid);
+
+  buildTrack();
+  buildCart();
+  computeCurveLength();
+
+  let dragging = false, lastX = 0, lastY = 0;
+  threeContainer.addEventListener('pointerdown', e=>{dragging = true; lastX = e.clientX; lastY = e.clientY; threeContainer.style.cursor = 'grabbing';});
+  window.addEventListener('pointermove', e=>{
+    if(!dragging) return;
+    cameraAngle -= (e.clientX - lastX)*0.008;
+    cameraTilt = Math.max(0.1, Math.min(1.3, cameraTilt - (e.clientY - lastY)*0.005));
+    lastX = e.clientX; lastY = e.clientY;
+    updateCamera();
+  });
+  window.addEventListener('pointerup', ()=>{dragging = false; threeContainer.style.cursor = 'grab';});
+  window.addEventListener('resize', ()=>{
+    if(!threeContainer.clientWidth) return;
+    camera.aspect = threeContainer.clientWidth/threeContainer.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(threeContainer.clientWidth, threeContainer.clientHeight);
+  });
+
+  updateCamera();
+  animate();
+}
+
+function buildTrack(){
+  if(trackLine) scene.remove(trackLine);
+  hillMeshes.forEach(m => scene.remove(m));
+  hillMeshes = [];
+
+  const {h} = getParams();
+  const pts = buildTrackPoints(h);
+  trackCurve = new THREE.CatmullRomCurve3(pts);
+
+  const tubeGeo = new THREE.TubeGeometry(trackCurve, 200, 0.08, 8, false);
+  const tubeMat = new THREE.MeshStandardMaterial({color: 0xffb627, emissive: 0xff8c00, emissiveIntensity: 0.4, metalness: 0.7, roughness: 0.3});
+  const railA = new THREE.Mesh(tubeGeo, tubeMat); railA.position.z = 0.3; railA.castShadow = true; scene.add(railA); hillMeshes.push(railA);
+  const railB = new THREE.Mesh(tubeGeo, tubeMat); railB.position.z = -0.3; railB.castShadow = true; scene.add(railB); hillMeshes.push(railB);
+
+  const tieMat = new THREE.MeshStandardMaterial({color: 0x8a6a3a, roughness: 0.8});
+  const tieGeo = new THREE.BoxGeometry(0.15, 0.08, 0.8);
+  for(let i = 0; i <= 60; i++){
+    const t = i/60;
+    const point = trackCurve.getPoint(t);
+    const tangent = trackCurve.getTangent(t);
+    const tie = new THREE.Mesh(tieGeo, tieMat);
+    tie.position.copy(point);
+    tie.position.y -= 0.12;
+    tie.lookAt(point.x + tangent.x, point.y + tangent.y, point.z + tangent.z);
+    tie.castShadow = true;
+    scene.add(tie); hillMeshes.push(tie);
+  }
+
+  const pillarMat = new THREE.MeshStandardMaterial({color: 0x4a5a7a, metalness: 0.5, roughness: 0.4});
+  for(let i = 0; i <= 12; i++){
+    const t = i/12;
+    const point = trackCurve.getPoint(t);
+    if(point.y < 0.5) continue;
+    const pillarGeo = new THREE.CylinderGeometry(0.12, 0.18, point.y, 8);
+    const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+    pillar.position.set(point.x, point.y/2 - 0.1, 0);
+    pillar.castShadow = true;
+    scene.add(pillar); hillMeshes.push(pillar);
+  }
+}
+
+function buildCart(){
+  if(cart) scene.remove(cart);
+  const {m} = getParams();
+  const scale = 0.7 + m*0.04;
+  const group = new THREE.Group();
+
+  const bodyGeo = new THREE.BoxGeometry(1.0*scale, 0.5*scale, 0.7*scale);
+  const bodyMat = new THREE.MeshStandardMaterial({color: 0xe63946, metalness: 0.6, roughness: 0.3, emissive: 0x8a1a2a, emissiveIntensity: 0.25});
+  const body = new THREE.Mesh(bodyGeo, bodyMat); body.position.y = 0.35*scale; body.castShadow = true; group.add(body);
+
+  const edges = new THREE.EdgesGeometry(bodyGeo);
+  const edgeLines = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({color: 0xffb627}));
+  edgeLines.position.y = 0.35*scale; group.add(edgeLines);
+
+  const seatGeo = new THREE.BoxGeometry(0.7*scale, 0.1*scale, 0.5*scale);
+  const seat = new THREE.Mesh(seatGeo, new THREE.MeshStandardMaterial({color: 0x2a2a3a, roughness: 0.7}));
+  seat.position.y = 0.65*scale; group.add(seat);
+
+  const wheelGeo = new THREE.CylinderGeometry(0.15*scale, 0.15*scale, 0.08, 12);
+  const wheelMat = new THREE.MeshStandardMaterial({color: 0x1a1a2a, metalness: 0.7, roughness: 0.3});
+  [[0.35*scale, 0.05*scale, 0.4*scale],[-0.35*scale, 0.05*scale, 0.4*scale],[0.35*scale, 0.05*scale, -0.4*scale],[-0.35*scale, 0.05*scale, -0.4*scale]].forEach(p=>{
+    const w = new THREE.Mesh(wheelGeo, wheelMat);
+    w.position.set(p[0], p[1], p[2]); w.rotation.x = Math.PI/2; w.castShadow = true; group.add(w);
+  });
+
+  cart = group;
+  scene.add(cart);
+  placeCartOnTrack(0);
+}
+
+function placeCartOnTrack(t){
+  if(!cart || !trackCurve) return;
+  t = Math.max(0, Math.min(1, t));
+  const point = trackCurve.getPoint(t);
+  const tangent = trackCurve.getTangent(t);
+  cart.position.copy(point);
+  cart.position.y += 0.15;
+  cart.rotation.z = Math.atan2(tangent.y, tangent.x);
+  cart.rotation.y = 0; cart.rotation.x = 0;
+}
+
+function updateCamera(){
+  camera.position.x = Math.cos(cameraAngle) * cameraDist;
+  camera.position.z = Math.sin(cameraAngle) * cameraDist;
+  camera.position.y = 3 + cameraTilt * 8;
+  camera.lookAt(0, 3, 0);
+}
+
+let cartT = 0, cumulativeDist = 0, curveLength = 22;
+
+function computeCurveLength(){
+  if(!trackCurve){ curveLength = 22; return; }
+  let len = 0;
+  let prev = trackCurve.getPoint(0);
+  for(let i = 1; i <= 100; i++){
+    const p = trackCurve.getPoint(i/100);
+    len += p.distanceTo(prev);
+    prev = p;
+  }
+  curveLength = len;
+}
+
+function resetSim(){
+  simRunning = false;
+  cartT = 0;
+  simT = 0;
+  cumulativeDist = 0;
+  const {m, h} = getParams();
+  simData.totalStart = m * 9.8 * h;
+  simData.runTime = 0;
+  if(scene){ buildTrack(); buildCart(); computeCurveLength(); }
+  document.getElementById('play-btn').textContent = '▶ Release';
+  updateReadout(0, h, 0, simData.totalStart);
+}
+
+function updateReadout(speed, height, ke, total){
+  const {m, h} = getParams();
+  const pe = m * 9.8 * height;
+  const maxE = m * 9.8 * h;
+  simData.speed = speed; simData.height = height; simData.ke = ke; simData.pe = pe;
+
+  const kePct = maxE > 0 ? Math.min(100, (ke/maxE)*100) : 0;
+  const pePct = maxE > 0 ? Math.min(100, (pe/maxE)*100) : 0;
+  const tePct = maxE > 0 ? Math.min(100, (total/maxE)*100) : 0;
+
+  document.getElementById('ke-bar').style.width = kePct + '%';
+  document.getElementById('pe-bar').style.width = pePct + '%';
+  document.getElementById('te-bar').style.width = tePct + '%';
+  document.getElementById('ke-val').textContent = ke.toFixed(1) + ' J';
+  document.getElementById('pe-val').textContent = pe.toFixed(1) + ' J';
+  document.getElementById('te-val').textContent = total.toFixed(1) + ' J';
+  document.getElementById('r-speed').textContent = speed.toFixed(1) + ' m/s';
+  document.getElementById('r-height').textContent = height.toFixed(1) + ' m';
+  const avgPower = simData.runTime > 0.05 ? (simData.totalStart - total)/simData.runTime : 0;
+  document.getElementById('r-power').textContent = avgPower.toFixed(1) + ' W';
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+
+  if(simRunning){
+    const {m, fric} = getParams();
+    const dt = 0.016;
+    simData.runTime += dt;
+
+    const point = trackCurve.getPoint(cartT);
+    const currentHeight = point.y;
+    const currentPE = m * 9.8 * currentHeight;
+    const frictionLoss = fric * m * 9.8 * cumulativeDist;
+    let currentKE = simData.totalStart - currentPE - frictionLoss;
+    if(currentKE < 0) currentKE = 0;
+
+    let speed = Math.sqrt(2 * currentKE / m);
+    if(cartT < 0.02 && speed < 0.5) speed = 0.5;
+
+    const dtParam = (speed * dt * 1.8) / curveLength;
+    cartT += dtParam;
+    cumulativeDist += speed * dt;
+
+    if(cartT >= 1){
+      cartT = 1; simRunning = false;
+      document.getElementById('play-btn').textContent = '▶ Release';
+      score += 10; updateStats();
+    }
+    if(speed < 0.05 && cartT > 0.05){
+      simRunning = false;
+      document.getElementById('play-btn').textContent = '▶ Release';
+    }
+
+    placeCartOnTrack(cartT);
+    const total = currentKE + currentPE;
+    updateReadout(speed, currentHeight, currentKE, total);
+  }
+
+  if(renderer && scene && camera) renderer.render(scene, camera);
+}
+
+['m','h','fric'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', e=>{
+    document.getElementById(id+'-val').textContent = e.target.value;
+    if(!simRunning) resetSim();
+  });
+});
+
+document.getElementById('play-btn').addEventListener('click', ()=>{
+  if(cartT >= 0.99) resetSim();
+  simRunning = !simRunning;
+  document.getElementById('play-btn').textContent = simRunning ? '⏸ Pause' : '▶ Release';
+});
+document.getElementById('reset-btn').addEventListener('click', resetSim);
+
+let threeInitialized = false;
+function ensureThree(){
+  if(threeInitialized) return;
+  if(threeContainer.clientWidth === 0) return;
+  threeInitialized = true;
+  initThree();
+  const {m, h} = getParams();
+  updateReadout(0, h, 0, m*9.8*h);
+}
+document.querySelector('.tab[data-tab="sim"]').addEventListener('click', ()=>{ setTimeout(ensureThree, 50); });
+setTimeout(ensureThree, 200);
+
+// MATCH
+const pairs = [
+  {term:"Work", def:"F · s · cosθ"},
+  {term:"Kinetic Energy", def:"½ m v²"},
+  {term:"Potential Energy", def:"m g h"},
+  {term:"Power", def:"Work / Time"},
+  {term:"Elastic Collision", def:"KE & momentum conserved"},
+  {term:"1 Horsepower", def:"≈ 746 watts"}
+];
+let matchSelected = null, matchedCount = 0;
+function shuffle(arr){ return arr.sort(()=>Math.random()-0.5); }
+function renderMatch(){
+  matchedCount = 0; matchSelected = null;
+  const grid = document.getElementById('match-grid');
+  const items = [];
+  pairs.forEach((p,i)=>{ items.push({type:'term', text:p.term, id:i}); items.push({type:'def', text:p.def, id:i}); });
+  shuffle(items);
+  grid.innerHTML = items.map(it=>`<div class="match-card" data-type="${it.type}" data-id="${it.id}">${it.text}</div>`).join('');
+  grid.querySelectorAll('.match-card').forEach(card=>card.addEventListener('click',()=>handleMatch(card)));
+}
+function handleMatch(card){
+  if(card.classList.contains('matched')) return;
+  if(matchSelected === card){ card.classList.remove('selected'); matchSelected = null; return; }
+  if(!matchSelected){ card.classList.add('selected'); matchSelected = card; return; }
+  if(card.dataset.id === matchSelected.dataset.id && card.dataset.type !== matchSelected.dataset.type){
+    card.classList.add('matched'); matchSelected.classList.add('matched');
+    matchSelected.classList.remove('selected'); matchSelected = null;
+    matchedCount++; score += 8; streak++; updateStats();
+    if(matchedCount === pairs.length){ setTimeout(()=>showWin('All matched! +20 bonus 🎯'), 400); score += 20; updateStats(); }
+  } else {
+    card.classList.add('wrong'); matchSelected.classList.add('wrong');
+    streak = 0; updateStats();
+    const prev = matchSelected;
+    setTimeout(()=>{ card.classList.remove('wrong','selected'); prev.classList.remove('wrong','selected'); }, 600);
+    matchSelected = null;
+  }
+}
+document.getElementById('match-reset').addEventListener('click', renderMatch);
+renderMatch();
+</script>
+</body>
+</html>

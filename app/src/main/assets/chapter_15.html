@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wave Rider — Waves Game</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="three.min.js"></script>
+<style>
+  :root{
+    --bg:#020b18;--bg2:#041428;
+    --accent:#00cfff;--violet:#8b5cf6;
+    --gold:#fbbf24;--rose:#f43f5e;
+    --green:#10b981;--text:#e2e8f0;--muted:#64748b;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{overflow-x:hidden}
+  body{
+    font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);
+    min-height:100vh;
+    background-image:
+      radial-gradient(circle at 20% 25%,rgba(0,207,255,.14),transparent 45%),
+      radial-gradient(circle at 80% 75%,rgba(139,92,246,.13),transparent 45%),
+      radial-gradient(circle at 50% 50%,rgba(251,191,36,.07),transparent 50%);
+    padding:20px 16px 60px;
+  }
+  body::before{
+    content:'';position:fixed;inset:0;
+    background-image:
+      linear-gradient(rgba(0,207,255,.03) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(0,207,255,.03) 1px,transparent 1px);
+    background-size:44px 44px;pointer-events:none;z-index:0;
+  }
+  .container{position:relative;z-index:1;max-width:900px;margin:0 auto}
+  header{text-align:center;margin-bottom:28px;padding:20px 0}
+  .title{
+    font-family:'Rajdhani',sans-serif;font-weight:700;
+    font-size:clamp(2.2rem,8vw,4rem);line-height:1;letter-spacing:4px;
+    background:linear-gradient(135deg,var(--accent),var(--violet),var(--gold));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 30px rgba(0,207,255,.4));
+  }
+  .subtitle{
+    font-family:'Share Tech Mono',monospace;color:var(--accent);
+    font-size:.82rem;margin-top:8px;letter-spacing:3px;text-transform:uppercase;
+  }
+  .stats{display:flex;justify-content:center;gap:14px;margin-top:16px;flex-wrap:wrap}
+  .stat{background:rgba(255,255,255,.05);border:1px solid rgba(0,207,255,.15);border-radius:12px;padding:8px 16px;font-family:'Share Tech Mono',monospace;font-size:.8rem}
+  .stat strong{color:var(--gold);font-size:1rem}
+
+  .tabs{display:flex;gap:8px;margin-bottom:22px;background:rgba(255,255,255,.04);padding:6px;border-radius:16px;border:1px solid rgba(255,255,255,.07);overflow-x:auto}
+  .tab{flex:1;min-width:fit-content;padding:11px 14px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;font-size:.9rem;border-radius:10px;transition:all .25s;white-space:nowrap}
+  .tab.active{background:linear-gradient(135deg,var(--accent),var(--violet));color:#fff;box-shadow:0 4px 18px rgba(0,207,255,.35)}
+
+  .panel{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.09);border-radius:22px;padding:22px;backdrop-filter:blur(10px);display:none;animation:fadeIn .4s ease}
+  .panel.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .panel h2{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:1.5rem;margin-bottom:6px;color:var(--gold);letter-spacing:2px}
+  .panel-sub{color:var(--muted);font-size:.88rem;margin-bottom:18px}
+
+  .question-box{background:linear-gradient(135deg,rgba(0,207,255,.09),rgba(139,92,246,.06));border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:18px;margin-bottom:14px}
+  .q-text{font-size:1.02rem;font-weight:600;line-height:1.5;margin-bottom:5px}
+  .q-meta{font-family:'Share Tech Mono',monospace;font-size:.72rem;color:var(--accent);letter-spacing:1px}
+  .options{display:grid;gap:9px}
+  .option{background:rgba(255,255,255,.05);border:2px solid rgba(255,255,255,.09);color:var(--text);padding:13px 16px;border-radius:11px;text-align:left;cursor:pointer;font-family:'Nunito',sans-serif;font-size:.93rem;transition:all .2s}
+  .option:hover{background:rgba(0,207,255,.08);border-color:var(--accent);transform:translateX(4px)}
+  .option.correct{background:rgba(16,185,129,.15);border-color:var(--green);color:var(--green)}
+  .option.wrong{background:rgba(244,63,94,.14);border-color:var(--rose);color:var(--rose)}
+  .option:disabled{cursor:not-allowed}
+  .feedback{margin-top:12px;padding:13px;border-radius:11px;font-size:.88rem;line-height:1.5;display:none}
+  .feedback.show{display:block;animation:fadeIn .3s}
+  .feedback.correct{background:rgba(16,185,129,.1);border-left:4px solid var(--green)}
+  .feedback.wrong{background:rgba(244,63,94,.1);border-left:4px solid var(--rose)}
+  .next-btn{margin-top:12px;width:100%;padding:13px;border:none;border-radius:11px;background:linear-gradient(135deg,var(--accent),var(--violet));color:#fff;font-weight:800;font-size:.97rem;cursor:pointer;font-family:'Rajdhani',sans-serif;letter-spacing:2px;display:none}
+  .next-btn.show{display:block}
+
+  .flash-stage{perspective:1200px;margin:10px 0 16px}
+  .flash-card{position:relative;width:100%;height:270px;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.4,0,.2,1);cursor:pointer}
+  .flash-card.flipped{transform:rotateY(180deg)}
+  .flash-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:18px;padding:22px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;border:1px solid rgba(255,255,255,.12)}
+  .flash-front{background:linear-gradient(135deg,rgba(0,207,255,.2),rgba(139,92,246,.14));box-shadow:0 18px 50px rgba(0,207,255,.18)}
+  .flash-back{background:linear-gradient(135deg,rgba(139,92,246,.2),rgba(16,185,129,.13));transform:rotateY(180deg);box-shadow:0 18px 50px rgba(139,92,246,.18)}
+  .flash-label{font-family:'Share Tech Mono',monospace;font-size:.68rem;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:12px;opacity:.9}
+  .flash-back .flash-label{color:var(--accent)}
+  .flash-term{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:clamp(1.4rem,5vw,2rem);line-height:1.1;background:linear-gradient(135deg,#fff,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:8px}
+  .flash-formula{font-family:'Share Tech Mono',monospace;font-size:1rem;color:var(--accent);background:rgba(0,0,0,.35);padding:7px 13px;border-radius:7px;margin-top:7px}
+  .flash-def{font-size:.97rem;line-height:1.55;color:var(--text);max-width:90%}
+  .flash-example{margin-top:12px;font-size:.8rem;color:var(--muted);font-style:italic;line-height:1.4}
+  .flash-tap{position:absolute;bottom:12px;font-size:.68rem;color:var(--muted);font-family:'Share Tech Mono',monospace;letter-spacing:1px}
+  .flash-nav{display:flex;gap:10px;align-items:center;justify-content:space-between}
+  .flash-arrow{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);color:var(--text);width:46px;height:46px;border-radius:50%;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+  .flash-arrow:hover{background:var(--gold);color:#020b18;transform:scale(1.05)}
+  .flash-arrow:disabled{opacity:.3;cursor:not-allowed}
+  .flash-progress{flex:1;background:rgba(255,255,255,.06);height:5px;border-radius:3px;overflow:hidden}
+  .flash-progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--violet));transition:width .3s}
+  .flash-counter{font-family:'Share Tech Mono',monospace;font-size:.77rem;color:var(--muted);text-align:center;margin-top:9px}
+  .flash-mark{margin-top:13px;display:flex;gap:8px}
+  .mark-btn{flex:1;padding:10px;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:700;font-size:.83rem;cursor:pointer;transition:transform .15s}
+  .mark-btn:active{transform:scale(.96)}
+  .mark-known{background:rgba(16,185,129,.14);color:var(--green);border:1px solid var(--green)}
+  .mark-review{background:rgba(244,63,94,.13);color:var(--rose);border:1px solid var(--rose)}
+
+  .wave-mode-toggle{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  .mode-btn{flex:1;min-width:fit-content;padding:10px 12px;border:2px solid rgba(255,255,255,.1);border-radius:10px;background:transparent;color:var(--muted);cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;font-size:.87rem;transition:all .2s;white-space:nowrap}
+  .mode-btn.active{background:rgba(0,207,255,.12);border-color:var(--accent);color:var(--accent)}
+  .sim-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+  .control{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);padding:11px;border-radius:11px}
+  .control label{display:block;font-family:'Share Tech Mono',monospace;font-size:.68rem;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
+  .control input[type=range]{width:100%;accent-color:var(--gold)}
+  .control .val{font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--gold);font-size:1.05rem}
+  #three-container canvas{display:block}
+  .sim-buttons{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+  .sim-btn{flex:1;min-width:90px;padding:11px;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-weight:700;cursor:pointer;transition:transform .15s}
+  .sim-btn:active{transform:scale(.96)}
+  .btn-play{background:var(--accent);color:#020b18}
+  .btn-reset{background:rgba(255,255,255,.09);color:var(--text)}
+  .readout{margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:7px}
+  .read-card{background:rgba(0,207,255,.07);border:1px solid rgba(0,207,255,.18);border-radius:10px;padding:9px;text-align:center}
+  .read-card .lbl{font-size:.68rem;color:var(--accent);font-family:'Share Tech Mono',monospace}
+  .read-card .num{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:1rem;color:var(--text)}
+
+  .match-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .match-card{background:rgba(255,255,255,.05);border:2px solid rgba(255,255,255,.09);padding:13px;border-radius:11px;cursor:pointer;font-size:.83rem;text-align:center;min-height:66px;display:flex;align-items:center;justify-content:center;transition:all .2s}
+  .match-card:hover{border-color:var(--accent)}
+  .match-card.selected{border-color:var(--gold);background:rgba(251,191,36,.13)}
+  .match-card.matched{background:rgba(16,185,129,.14);border-color:var(--green);color:var(--green);cursor:default;opacity:.75}
+  .match-card.wrong{background:rgba(244,63,94,.13);border-color:var(--rose);animation:shake .3s}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+  .reset-link{display:block;text-align:center;margin-top:16px;color:var(--muted);font-size:.83rem;cursor:pointer;text-decoration:underline;background:none;border:none;width:100%}
+
+  .win-overlay{position:fixed;inset:0;background:rgba(2,11,24,.95);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+  .win-overlay.show{display:flex;animation:fadeIn .4s}
+  .win-card{background:linear-gradient(135deg,var(--accent),var(--violet));color:#020b18;padding:28px;border-radius:18px;text-align:center;max-width:320px}
+  .win-card h2{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:2rem;margin-bottom:8px;letter-spacing:2px}
+  .win-card button{margin-top:14px;padding:11px 26px;border:none;border-radius:10px;background:#020b18;color:var(--gold);font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1 class="title">WAVE RIDER</h1>
+    <div class="subtitle">// Class 11 Physics · Waves</div>
+    <div class="stats">
+      <div class="stat">SCORE <strong id="score">0</strong></div>
+      <div class="stat">STREAK <strong id="streak">0</strong>🔥</div>
+      <div class="stat">LEVEL <strong id="level">1</strong></div>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="quiz">🧠 Quiz</button>
+    <button class="tab" data-tab="flash">🎴 Cards</button>
+    <button class="tab" data-tab="sim">🌊 Waves</button>
+    <button class="tab" data-tab="match">🔗 Match</button>
+  </div>
+
+  <section class="panel active" id="quiz">
+    <h2>BRAIN BOOST</h2>
+    <p class="panel-sub">Test your wave knowledge — +10 per correct answer!</p>
+    <div id="quiz-box"></div>
+  </section>
+
+  <section class="panel" id="flash">
+    <h2>FLASH CARDS</h2>
+    <p class="panel-sub">Tap to flip. Definitions, formulas and examples all in one place.</p>
+    <div class="flash-stage">
+      <div class="flash-card" id="flash-card">
+        <div class="flash-face flash-front">
+          <div class="flash-label">CONCEPT</div>
+          <div class="flash-term" id="f-term">Loading…</div>
+          <div class="flash-tap">tap to flip ↻</div>
+        </div>
+        <div class="flash-face flash-back">
+          <div class="flash-label">EXPLANATION</div>
+          <div class="flash-def" id="f-def"></div>
+          <div class="flash-formula" id="f-formula"></div>
+          <div class="flash-example" id="f-example"></div>
+          <div class="flash-tap">tap to flip back ↺</div>
+        </div>
+      </div>
+    </div>
+    <div class="flash-nav">
+      <button class="flash-arrow" id="f-prev">←</button>
+      <div class="flash-progress"><div class="flash-progress-bar" id="f-bar"></div></div>
+      <button class="flash-arrow" id="f-next">→</button>
+    </div>
+    <div class="flash-counter" id="f-counter">1 / 12</div>
+    <div class="flash-mark">
+      <button class="mark-btn mark-review" id="f-review">🔁 Need Review</button>
+      <button class="mark-btn mark-known" id="f-known">✓ Got It (+5)</button>
+    </div>
+  </section>
+
+  <section class="panel" id="sim">
+    <h2>WAVE LAB — 3D</h2>
+    <p class="panel-sub">Choose wave type. Adjust amplitude, frequency and speed. <span style="color:var(--gold)">Drag to rotate view</span></p>
+    <div class="wave-mode-toggle">
+      <button class="mode-btn active" id="btn-transverse">〜 Transverse</button>
+      <button class="mode-btn" id="btn-longitudinal">⋯ Longitudinal</button>
+      <button class="mode-btn" id="btn-standing">⊕ Standing Wave</button>
+    </div>
+    <div class="sim-controls" id="sim-controls"></div>
+    <div id="three-container" style="width:100%;height:390px;border-radius:16px;overflow:hidden;border:1px solid rgba(0,207,255,.2);background:radial-gradient(ellipse at 50% 30%,#041428 0%,#020b18 100%);position:relative;cursor:grab;touch-action:none"></div>
+    <div class="sim-buttons">
+      <button class="sim-btn btn-play" id="play-btn">▶ Play</button>
+      <button class="sim-btn btn-reset" id="reset-btn">↺ Reset</button>
+    </div>
+    <div class="readout">
+      <div class="read-card"><div class="lbl">Wavelength λ</div><div class="num" id="r-lambda">— m</div></div>
+      <div class="read-card"><div class="lbl">Frequency f</div><div class="num" id="r-freq">— Hz</div></div>
+      <div class="read-card"><div class="lbl">Wave Speed v</div><div class="num" id="r-speed">— m/s</div></div>
+      <div class="read-card"><div class="lbl">Time Period T</div><div class="num" id="r-period">— s</div></div>
+    </div>
+    <p style="margin-top:12px;font-size:.77rem;color:var(--muted);text-align:center;font-family:'Share Tech Mono',monospace">
+      v = fλ &nbsp;|&nbsp; T = 1/f &nbsp;|&nbsp; y(x,t) = A·sin(kx − ωt)
+    </p>
+  </section>
+
+  <section class="panel" id="match">
+    <h2>CONCEPT MATCH</h2>
+    <p class="panel-sub">Match each term with its correct meaning</p>
+    <div class="match-grid" id="match-grid"></div>
+    <button class="reset-link" id="match-reset">↺ Restart match game</button>
+  </section>
+</div>
+
+<div class="win-overlay" id="win">
+  <div class="win-card">
+    <h2>🌊 LEVEL UP!</h2>
+    <p id="win-msg">Riding the wave!</p>
+    <button onclick="document.getElementById('win').classList.remove('show')">Continue</button>
+  </div>
+</div>
+
+<script>
+let score=0,streak=0,level=1;
+function updateStats(){
+  document.getElementById('score').textContent=score;
+  document.getElementById('streak').textContent=streak;
+  document.getElementById('level').textContent=level;
+  const nl=Math.floor(score/50)+1;
+  if(nl>level){level=nl;showWin('Level '+level+' unlocked! 🚀');}
+}
+function showWin(msg){document.getElementById('win-msg').textContent=msg;document.getElementById('win').classList.add('show');}
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');document.getElementById(t.dataset.tab).classList.add('active');
+  });
+});
+
+const questions=[
+  {q:'The relationship between wave speed (v), frequency (f), and wavelength (λ) is:',
+   opts:['v = f + λ','v = f × λ','v = f / λ','v = λ / f'],correct:1,
+   explain:'v = fλ. This is the fundamental wave equation. Higher frequency AND shorter wavelength → same speed.'},
+  {q:'In a transverse wave, particles vibrate:',
+   opts:['Along the direction of wave propagation','Perpendicular to the direction of propagation','In a circular path','Randomly'],correct:1,
+   explain:'Transverse waves: particle motion ⊥ wave direction. Examples: light waves, string waves, water surface.'},
+  {q:'In a longitudinal wave, particles vibrate:',
+   opts:['Perpendicular to wave direction','Along the direction of wave propagation','In ellipses','There is no particle motion'],correct:1,
+   explain:'Longitudinal waves: particle motion is parallel (along) the wave direction. Sound is a longitudinal wave.'},
+  {q:'The speed of sound in air at 0°C is approximately:',
+   opts:['340 m/s','300 m/s','232 m/s','500 m/s'],correct:0,
+   explain:'Speed of sound ≈ 332 m/s at 0°C, and ≈ 343 m/s at 20°C. It increases with temperature.'},
+  {q:'Standing waves are formed by:',
+   opts:['A single travelling wave','Two waves of different frequencies','Two identical waves travelling in opposite directions','A wave reflecting off an open end only'],correct:2,
+   explain:'Standing (stationary) waves form when two identical waves (same frequency, amplitude) travel in opposite directions and superpose.'},
+  {q:'At a node in a standing wave, the displacement is:',
+   opts:['Maximum','Minimum (zero)','Equal to amplitude','Half the amplitude'],correct:1,
+   explain:'Nodes = points of zero displacement (destructive interference). Antinodes = points of maximum displacement.'},
+  {q:'If the frequency of a wave is doubled, its wavelength (speed constant) becomes:',
+   opts:['Doubled','Halved','Four times','Unchanged'],correct:1,
+   explain:'v = fλ → λ = v/f. If f doubles with constant v, then λ halves.'},
+  {q:'The phenomenon of superposition states that:',
+   opts:['Waves cannot exist simultaneously','Resultant displacement = sum of individual displacements','Waves destroy each other','Only transverse waves can superpose'],correct:1,
+   explain:'Principle of Superposition: when two or more waves overlap, resultant displacement = algebraic sum of individual displacements.'},
+  {q:'The number of nodes in a string fixed at both ends vibrating in the 3rd harmonic is:',
+   opts:['2','3','4','5'],correct:2,
+   explain:'In nth harmonic, number of nodes = n+1. 3rd harmonic → 4 nodes (including the two fixed ends).'},
+  {q:'The Doppler effect refers to:',
+   opts:['Change in wave speed','Change in apparent frequency due to relative motion','Change in amplitude','Splitting of waves'],correct:1,
+   explain:'Doppler Effect: apparent frequency changes when source or observer moves. Source approaching → higher pitch; receding → lower pitch.'}
+];
+let qIdx=0;
+function renderQuestion(){
+  if(qIdx>=questions.length)qIdx=0;
+  const q=questions[qIdx];
+  document.getElementById('quiz-box').innerHTML=`
+    <div class="question-box">
+      <div class="q-meta">QUESTION ${qIdx+1} / ${questions.length}</div>
+      <div class="q-text">${q.q}</div>
+    </div>
+    <div class="options">${q.opts.map((o,i)=>`<button class="option" data-i="${i}">${String.fromCharCode(65+i)}. ${o}</button>`).join('')}</div>
+    <div class="feedback" id="fb"></div>
+    <button class="next-btn" id="next">Next Question →</button>`;
+  document.querySelectorAll('.option').forEach(b=>b.addEventListener('click',()=>handleAnswer(b)));
+  document.getElementById('next').addEventListener('click',()=>{qIdx++;renderQuestion();});
+}
+function handleAnswer(btn){
+  const i=parseInt(btn.dataset.i),q=questions[qIdx],fb=document.getElementById('fb');
+  document.querySelectorAll('.option').forEach(b=>b.disabled=true);
+  if(i===q.correct){
+    btn.classList.add('correct');fb.classList.add('show','correct');
+    fb.innerHTML=`✅ <strong>Correct!</strong> ${q.explain}`;
+    score+=10;streak++;if(streak%3===0&&streak>0)score+=5;
+  }else{
+    btn.classList.add('wrong');
+    document.querySelectorAll('.option')[q.correct].classList.add('correct');
+    fb.classList.add('show','wrong');
+    fb.innerHTML=`❌ <strong>Incorrect.</strong> ${q.explain}`;streak=0;
+  }
+  updateStats();document.getElementById('next').classList.add('show');
+}
+renderQuestion();
+
+const flashcards=[
+  {term:'Wave',def:'A disturbance that transfers energy from one point to another without the transfer of matter. The medium particles oscillate about their mean positions.',formula:'Energy transfer, not matter transfer',example:'Ripples on a pond — water molecules move up/down, not outward'},
+  {term:'Transverse Wave',def:'A wave in which particles of the medium vibrate perpendicular (at 90°) to the direction of wave propagation.',formula:'Particle motion ⊥ wave direction',example:'Waves on a string, light waves, water surface waves'},
+  {term:'Longitudinal Wave',def:'A wave in which particles vibrate parallel to (along) the direction of wave propagation. Consists of compressions and rarefactions.',formula:'Particle motion ∥ wave direction',example:'Sound waves in air, compression waves in a spring (slinky)'},
+  {term:'Wavelength (λ)',def:'The distance between two consecutive points that are in the same phase of oscillation — e.g., crest to crest or compression to compression.',formula:'SI unit: metre (m)',example:'Visible light: λ ≈ 400–700 nm; Sound (440 Hz): λ ≈ 0.78 m'},
+  {term:'Amplitude (A)',def:'The maximum displacement of a medium particle from its equilibrium (mean) position. Determines the energy/intensity of the wave.',formula:'Intensity ∝ A²',example:'Loud sound = large amplitude; bright light = large amplitude'},
+  {term:'Wave Speed (v)',def:'The speed at which the wave pattern (disturbance) travels through the medium. Depends on the properties of the medium.',formula:'v = f λ = λ / T',example:'Sound: ~343 m/s in air, ~1500 m/s in water, ~5000 m/s in steel'},
+  {term:'Wave Equation',def:'Describes displacement of any particle at any position x and time t. The wave travels in the +x direction.',formula:'y(x,t) = A sin(kx − ωt)',example:'k = 2π/λ (wave number), ω = 2πf (angular frequency)'},
+  {term:'Principle of Superposition',def:'When two or more waves overlap in a medium, the resultant displacement at any point equals the algebraic sum of the individual displacements.',formula:'y = y₁ + y₂ + …',example:'Two speakers playing same note can cancel (destructive) or amplify (constructive) each other'},
+  {term:'Standing Wave',def:'Formed by superposition of two identical waves travelling in opposite directions. Energy is not transmitted — nodes and antinodes form fixed patterns.',formula:'y = 2A cos(kx) sin(ωt)',example:'Guitar string vibrating — nodes at fixed ends, antinodes in between'},
+  {term:'Nodes & Antinodes',def:'Nodes are fixed points of zero displacement in a standing wave. Antinodes are points of maximum displacement (amplitude = 2A).',formula:'Node spacing = λ/2',example:'In a 60 cm guitar string at fundamental: 1 antinode in the middle'},
+  {term:'Harmonics',def:'Natural frequencies at which a system vibrates. The fundamental is the 1st harmonic. The nth harmonic has frequency n × f₁.',formula:'fₙ = n × f₁ (both ends fixed)',example:'Fundamental: 1 loop. 2nd harmonic: 2 loops. 3rd harmonic: 3 loops.'},
+  {term:'Doppler Effect',def:'The apparent change in frequency of a wave when the source and observer are in relative motion. Approaching → higher frequency; receding → lower frequency.',formula:"f' = f(v ± v_o)/(v ∓ v_s)",example:'Ambulance siren sounds higher as it approaches, lower as it passes'}
+];
+let fIdx=0,fKnown=new Set();
+function renderFlash(){
+  const c=flashcards[fIdx];
+  document.getElementById('f-term').textContent=c.term;
+  document.getElementById('f-def').textContent=c.def;
+  document.getElementById('f-formula').textContent=c.formula;
+  document.getElementById('f-example').textContent='📌 '+c.example;
+  document.getElementById('flash-card').classList.remove('flipped');
+  document.getElementById('f-counter').textContent=`${fIdx+1} / ${flashcards.length}`;
+  document.getElementById('f-bar').style.width=`${((fIdx+1)/flashcards.length)*100}%`;
+  document.getElementById('f-prev').disabled=fIdx===0;
+  document.getElementById('f-next').disabled=fIdx===flashcards.length-1;
+}
+document.getElementById('flash-card').addEventListener('click',e=>e.currentTarget.classList.toggle('flipped'));
+document.getElementById('f-prev').addEventListener('click',e=>{e.stopPropagation();if(fIdx>0){fIdx--;renderFlash();}});
+document.getElementById('f-next').addEventListener('click',e=>{e.stopPropagation();if(fIdx<flashcards.length-1){fIdx++;renderFlash();}});
+document.getElementById('f-known').addEventListener('click',e=>{
+  e.stopPropagation();
+  if(!fKnown.has(fIdx)){fKnown.add(fIdx);score+=5;streak++;updateStats();
+    if(fKnown.size===flashcards.length){showWin('All cards mastered! 🏆 +25 bonus');score+=25;updateStats();}}
+  if(fIdx<flashcards.length-1){fIdx++;renderFlash();}
+});
+document.getElementById('f-review').addEventListener('click',e=>{
+  e.stopPropagation();
+  if(fIdx<flashcards.length-1){fIdx++;renderFlash();}else{fIdx=0;renderFlash();}
+});
+renderFlash();
+
+const threeContainer=document.getElementById('three-container');
+let scene,camera,renderer;
+let cameraAngle=0.4,cameraTilt=0.3,cameraDist=16;
+let waveMode='transverse';
+let simRunning=false,simTime=0;
+let waveParticles=[],particleMeshes=[];
+let arrowHelpers=[];
+const N_PARTICLES=40;
+const WAVE_SPAN=14;
+
+const modeConfigs={
+  transverse:[
+    {id:'amp',  label:'Amplitude (A)',min:.2,max:2,val:1,step:.05,unit:'m'},
+    {id:'freq', label:'Frequency (f)',min:.2,max:3,val:1,step:.05,unit:'Hz'},
+    {id:'speed',label:'Wave Speed',  min:1, max:8,val:4,step:.25,unit:'m/s'}
+  ],
+  longitudinal:[
+    {id:'amp',  label:'Amplitude (A)',min:.1,max:1.2,val:.5,step:.05,unit:'m'},
+    {id:'freq', label:'Frequency (f)',min:.2,max:3,val:1,step:.05,unit:'Hz'},
+    {id:'speed',label:'Wave Speed',  min:1, max:8,val:4,step:.25,unit:'m/s'}
+  ],
+  standing:[
+    {id:'amp',  label:'Amplitude (A)',min:.2,max:2,val:1,step:.05,unit:'m'},
+    {id:'freq', label:'Frequency (f)',min:.2,max:3,val:1,step:.1, unit:'Hz'},
+    {id:'nhar', label:'Harmonic (n)', min:1, max:5,val:1,step:1,  unit:''}
+  ]
+};
+
+function getV(id){return parseFloat(document.getElementById(id)?.value??0);}
+
+function buildControls(){
+  const cfg=modeConfigs[waveMode];
+  document.getElementById('sim-controls').innerHTML=cfg.map(c=>`
+    <div class="control">
+      <label>${c.label}</label>
+      <input type="range" id="${c.id}" min="${c.min}" max="${c.max}" value="${c.val}" step="${c.step}">
+      <div><span class="val" id="${c.id}-val">${c.val}</span><span style="color:var(--muted);font-size:.75rem"> ${c.unit}</span></div>
+    </div>`).join('');
+  cfg.forEach(c=>{
+    document.getElementById(c.id).addEventListener('input',e=>{
+      document.getElementById(c.id+'-val').textContent=e.target.value;
+      updateReadout();
+    });
+  });
+  updateReadout();
+}
+
+function updateReadout(){
+  const f=getV('freq');
+  let lambda,v,T;
+  if(waveMode==='standing'){
+    const n=getV('nhar');
+    lambda=2*WAVE_SPAN/n;
+    v=getV('freq')*lambda;
+    T=1/f;
+    document.getElementById('r-lambda').textContent=lambda.toFixed(2)+' m';
+    document.getElementById('r-freq').textContent=f.toFixed(2)+' Hz';
+    document.getElementById('r-speed').textContent=v.toFixed(2)+' m/s';
+    document.getElementById('r-period').textContent=(1/f).toFixed(2)+' s';
+  } else {
+    v=getV('speed'); T=1/f; lambda=v/f;
+    document.getElementById('r-lambda').textContent=lambda.toFixed(2)+' m';
+    document.getElementById('r-freq').textContent=f.toFixed(2)+' Hz';
+    document.getElementById('r-speed').textContent=v.toFixed(2)+' m/s';
+    document.getElementById('r-period').textContent=T.toFixed(2)+' s';
+  }
+}
+
+function initThree(){
+  scene=new THREE.Scene();
+  const w=threeContainer.clientWidth||threeContainer.offsetWidth||window.innerWidth||360;
+  const h=threeContainer.clientHeight||threeContainer.offsetHeight||400;
+  camera=new THREE.PerspectiveCamera(48,w/h,0.1,300);
+  renderer=new THREE.WebGLRenderer({antialias:false,alpha:true});
+  renderer.setSize(w,h);renderer.setPixelRatio(1);
+  threeContainer.appendChild(renderer.domElement);
+
+  scene.add(new THREE.AmbientLight(0xffffff,0.5));
+  const sun=new THREE.DirectionalLight(0xaaddff,1.2);
+  sun.position.set(5,10,8);scene.add(sun);
+  const fill=new THREE.PointLight(0x00cfff,1.0,30);fill.position.set(-6,4,4);scene.add(fill);
+  const rim=new THREE.PointLight(0x8b5cf6,0.8,25);rim.position.set(6,3,-5);scene.add(rim);
+
+  const floor=new THREE.GridHelper(30,30,0x00cfff,0x0a2040);
+  floor.position.y=-3.5;floor.material.opacity=0.35;floor.material.transparent=true;scene.add(floor);
+
+  const railGeo=new THREE.CylinderGeometry(0.04,0.04,WAVE_SPAN+2,8);
+  const railMat=new THREE.MeshStandardMaterial({color:0x334466,metalness:0.6,roughness:0.4});
+  const rail=new THREE.Mesh(railGeo,railMat);
+  rail.rotation.z=Math.PI/2;scene.add(rail);
+
+  for(let i=-3;i<=3;i++){
+    const markerGeo=new THREE.BoxGeometry(0.06,0.3,0.06);
+    const markerMat=new THREE.MeshBasicMaterial({color:0x334466});
+    const m=new THREE.Mesh(markerGeo,markerMat);
+    m.position.set(i*(WAVE_SPAN/6),-.18,0);scene.add(m);
+  }
+
+  let dragging=false,lastX=0,lastY=0;
+  threeContainer.addEventListener('pointerdown',e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;threeContainer.style.cursor='grabbing';});
+  window.addEventListener('pointermove',e=>{
+    if(!dragging)return;
+    cameraAngle-=(e.clientX-lastX)*0.009;
+    cameraTilt=Math.max(0.05,Math.min(1.2,cameraTilt-(e.clientY-lastY)*0.005));
+    lastX=e.clientX;lastY=e.clientY;updateCamera();
+  });
+  window.addEventListener('pointerup',()=>{dragging=false;threeContainer.style.cursor='grab';});
+  window.addEventListener('resize',()=>{
+    if(!threeContainer.clientWidth)return;
+    const w=threeContainer.clientWidth,h=threeContainer.clientHeight;
+    camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);
+  });
+
+  updateCamera();
+  buildWaveParticles();
+  animLoop();
+}
+
+function updateCamera(){
+  camera.position.x=Math.sin(cameraAngle)*cameraDist;
+  camera.position.z=Math.cos(cameraAngle)*cameraDist;
+  camera.position.y=1+cameraTilt*9;
+  camera.lookAt(0,0,0);
+}
+
+function buildWaveParticles(){
+  particleMeshes.forEach(m=>scene.remove(m));
+  arrowHelpers.forEach(a=>scene.remove(a));
+  particleMeshes=[];arrowHelpers=[];waveParticles=[];
+
+  const isLong=(waveMode==='longitudinal');
+  const spacing=WAVE_SPAN/(N_PARTICLES-1);
+
+  for(let i=0;i<N_PARTICLES;i++){
+    const x0=-WAVE_SPAN/2+i*spacing;
+    const t=i/(N_PARTICLES-1);
+    const r=Math.round((0*(1-t)+139*t));
+    const g=Math.round((207*(1-t)+92*t));
+    const b=Math.round((255*(1-t)+246*t));
+    const col=new THREE.Color(r/255,g/255,b/255);
+
+    let geo,mat,mesh;
+    if(isLong){
+      geo=new THREE.SphereGeometry(0.18,16,12);
+      mat=new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:.25,metalness:.5,roughness:.35});
+      mesh=new THREE.Mesh(geo,mat);
+      mesh.scale.set(1.6,.8,.8);
+    } else {
+      geo=new THREE.SphereGeometry(0.18,20,16);
+      mat=new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:.25,metalness:.5,roughness:.35});
+      mesh=new THREE.Mesh(geo,mat);
+    }
+    mesh.position.set(x0,0,0);
+    scene.add(mesh);
+    particleMeshes.push(mesh);
+    waveParticles.push({x0,x:x0,y:0,z:0,col});
+  }
+  buildWaveLine();
+}
+
+let waveLine=null;
+function buildWaveLine(){
+  if(waveLine)scene.remove(waveLine);
+  const positions=new Float32Array(N_PARTICLES*3);
+  const colors=new Float32Array(N_PARTICLES*3);
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.BufferAttribute(positions,3));
+  geo.setAttribute('color',new THREE.BufferAttribute(colors,3));
+  const mat=new THREE.LineBasicMaterial({vertexColors:true,linewidth:2,transparent:true,opacity:.7});
+  waveLine=new THREE.Line(geo,mat);
+  scene.add(waveLine);
+}
+
+function updateWaveLine(){
+  if(!waveLine)return;
+  const pos=waveLine.geometry.attributes.position.array;
+  const col=waveLine.geometry.attributes.color.array;
+  for(let i=0;i<N_PARTICLES;i++){
+    const p=waveParticles[i];
+    pos[i*3]=p.x;pos[i*3+1]=p.y;pos[i*3+2]=p.z;
+    col[i*3]=p.col.r;col[i*3+1]=p.col.g;col[i*3+2]=p.col.b;
+  }
+  waveLine.geometry.attributes.position.needsUpdate=true;
+  waveLine.geometry.attributes.color.needsUpdate=true;
+}
+
+function computeDisplacements(t){
+  const A=getV('amp'),f=getV('freq');
+  const omega=2*Math.PI*f;
+
+  if(waveMode==='transverse'){
+    const v=getV('speed');
+    const lambda=v/f;
+    const k=2*Math.PI/lambda;
+    for(let i=0;i<N_PARTICLES;i++){
+      const p=waveParticles[i];
+      p.x=p.x0;
+      p.y=A*Math.sin(k*p.x0-omega*t);
+      p.z=0;
+    }
+  }
+  else if(waveMode==='longitudinal'){
+    const v=getV('speed');
+    const lambda=v/f;
+    const k=2*Math.PI/lambda;
+    for(let i=0;i<N_PARTICLES;i++){
+      const p=waveParticles[i];
+      const dx=A*Math.sin(k*p.x0-omega*t);
+      p.x=p.x0+dx;
+      p.y=0;p.z=0;
+    }
+  }
+  else{
+    const n=getV('nhar');
+    const L=WAVE_SPAN;
+    const k=n*Math.PI/L;
+    for(let i=0;i<N_PARTICLES;i++){
+      const p=waveParticles[i];
+      p.x=p.x0;
+      const xShifted=p.x0+WAVE_SPAN/2;
+      p.y=2*A*Math.sin(k*xShifted)*Math.sin(omega*t);
+      p.z=0;
+    }
+  }
+}
+
+function updateParticleMeshes(){
+  for(let i=0;i<N_PARTICLES;i++){
+    const p=waveParticles[i];
+    const m=particleMeshes[i];
+    m.position.set(p.x,p.y,p.z);
+    const disp=Math.abs(p.y)/(getV('amp')||1);
+    m.material.emissiveIntensity=0.15+disp*0.6;
+    if(waveMode==='longitudinal'){
+      const next=waveParticles[Math.min(i+1,N_PARTICLES-1)];
+      const dx=Math.abs(next.x-p.x);
+      const normalSpacing=WAVE_SPAN/(N_PARTICLES-1);
+      const s=Math.max(0.4,Math.min(2.5,dx/normalSpacing));
+      m.scale.set(s,1/s,1/s);
+      m.material.emissiveIntensity=0.1+(1/s-0.4)*0.4;
+    }
+  }
+  updateWaveLine();
+}
+
+let nodeMarkers=[];
+function buildNodeMarkers(){
+  nodeMarkers.forEach(m=>scene.remove(m));nodeMarkers=[];
+  if(waveMode!=='standing')return;
+  const n=getV('nhar');
+  const L=WAVE_SPAN;
+  for(let i=0;i<=n;i++){
+    const xShifted=i*L/n;
+    const x=xShifted-WAVE_SPAN/2;
+    const geo=new THREE.RingGeometry(0.25,0.32,24);
+    const mat=new THREE.MeshBasicMaterial({color:0xfbbf24,transparent:true,opacity:0.8,side:THREE.DoubleSide});
+    const m=new THREE.Mesh(geo,mat);
+    m.position.set(x,0,0);m.rotation.y=Math.PI/2;
+    scene.add(m);nodeMarkers.push(m);
+  }
+}
+
+let envelopeMeshes=[];
+function buildEnvelope(){
+  envelopeMeshes.forEach(m=>scene.remove(m));envelopeMeshes=[];
+  if(waveMode!=='standing')return;
+  const A=getV('amp'),n=getV('nhar'),L=WAVE_SPAN;
+  const k=n*Math.PI/L;
+  const tubeMat=new THREE.MeshBasicMaterial({color:0x00cfff,transparent:true,opacity:0.35});
+  const pts=[];
+  for(let i=0;i<=80;i++){
+    const xS=(i/80)*L;
+    const y=2*A*Math.abs(Math.sin(k*xS));
+    pts.push(new THREE.Vector3(xS-WAVE_SPAN/2,y,0));
+  }
+  const curve=new THREE.CatmullRomCurve3(pts);
+  const tubeGeo=new THREE.TubeGeometry(curve,80,0.04,6,false);
+  const tube=new THREE.Mesh(tubeGeo,tubeMat);scene.add(tube);envelopeMeshes.push(tube);
+  const ptsB=pts.map(p=>new THREE.Vector3(p.x,-p.y,p.z));
+  const curveB=new THREE.CatmullRomCurve3(ptsB);
+  const tubeBGeo=new THREE.TubeGeometry(curveB,80,0.04,6,false);
+  const tubeB=new THREE.Mesh(tubeBGeo,tubeMat.clone());scene.add(tubeB);envelopeMeshes.push(tubeB);
+}
+
+function buildScene(){
+  buildWaveParticles();
+  buildNodeMarkers();
+  buildEnvelope();
+  updateReadout();
+}
+
+let lastTS=null;
+function animLoop(ts){
+  requestAnimationFrame(animLoop);
+  const dt=lastTS?Math.min((ts-(lastTS))/1000,0.05):0.016;
+  lastTS=ts;
+  if(simRunning){
+    simTime+=dt;
+    computeDisplacements(simTime);
+    updateParticleMeshes();
+    nodeMarkers.forEach(m=>{m.material.opacity=0.5+0.35*Math.abs(Math.sin(simTime*3));});
+  }
+  if(renderer&&scene&&camera)renderer.render(scene,camera);
+}
+
+function resetSim(){
+  simRunning=false;simTime=0;
+  document.getElementById('play-btn').textContent='▶ Play';
+  if(scene){
+    buildScene();
+    computeDisplacements(0);
+    updateParticleMeshes();
+  }
+  updateReadout();
+}
+
+document.getElementById('play-btn').addEventListener('click',()=>{
+  simRunning=!simRunning;
+  document.getElementById('play-btn').textContent=simRunning?'⏸ Pause':'▶ Play';
+  if(simRunning){score+=2;updateStats();}
+});
+document.getElementById('reset-btn').addEventListener('click',resetSim);
+
+['transverse','longitudinal','standing'].forEach(mode=>{
+  document.getElementById('btn-'+mode).addEventListener('click',()=>{
+    waveMode=mode;
+    document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('btn-'+mode).classList.add('active');
+    buildControls();
+    resetSim();
+  });
+});
+
+buildControls();
+
+let threeReady=false;
+function ensureThree(){if(threeReady)return;const w=threeContainer.clientWidth||threeContainer.offsetWidth;if(w===0){setTimeout(ensureThree,150);return;}threeReady=true;initThree();resetSim();}
+document.querySelector('.tab[data-tab="sim"]').addEventListener('click',()=>setTimeout(ensureThree,150));
+setTimeout(ensureThree,500);
+
+const pairs=[
+  {term:'v = fλ',def:'Wave speed equation'},
+  {term:'Transverse wave',def:'Particles move ⊥ to wave'},
+  {term:'Longitudinal wave',def:'Compressions & rarefactions'},
+  {term:'Node',def:'Zero displacement point'},
+  {term:'Antinode',def:'Maximum displacement point'},
+  {term:'Doppler Effect',def:'Apparent frequency change'}
+];
+let matchSelected=null,matchedCount=0;
+function shuffle(a){return a.sort(()=>Math.random()-0.5);}
+function renderMatch(){
+  matchedCount=0;matchSelected=null;
+  const grid=document.getElementById('match-grid');
+  const items=[];
+  pairs.forEach((p,i)=>{items.push({type:'term',text:p.term,id:i});items.push({type:'def',text:p.def,id:i});});
+  shuffle(items);
+  grid.innerHTML=items.map(it=>`<div class="match-card" data-type="${it.type}" data-id="${it.id}">${it.text}</div>`).join('');
+  grid.querySelectorAll('.match-card').forEach(c=>c.addEventListener('click',()=>handleMatch(c)));
+}
+function handleMatch(card){
+  if(card.classList.contains('matched'))return;
+  if(matchSelected===card){card.classList.remove('selected');matchSelected=null;return;}
+  if(!matchSelected){card.classList.add('selected');matchSelected=card;return;}
+  if(card.dataset.id===matchSelected.dataset.id&&card.dataset.type!==matchSelected.dataset.type){
+    card.classList.add('matched');matchSelected.classList.add('matched');
+    matchSelected.classList.remove('selected');matchSelected=null;
+    matchedCount++;score+=8;streak++;updateStats();
+    if(matchedCount===pairs.length){setTimeout(()=>showWin('All matched! +20 bonus 🎯'),400);score+=20;updateStats();}
+  }else{
+    card.classList.add('wrong');matchSelected.classList.add('wrong');
+    streak=0;updateStats();
+    const prev=matchSelected;
+    setTimeout(()=>{card.classList.remove('wrong','selected');prev.classList.remove('wrong','selected');},600);
+    matchSelected=null;
+  }
+}
+document.getElementById('match-reset').addEventListener('click',renderMatch);
+renderMatch();
+</script>
+</body>
+</html>
