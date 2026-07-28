@@ -7,8 +7,11 @@ import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -39,8 +42,12 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.royals.class11physics.ui.theme.Class11PhysicsTheme
 
 class WebViewActivity : ComponentActivity() {
+    private lateinit var interstitialAdManager: InterstitialAdManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val isPremium = BillingManager.isPremiumUser(this)
+        interstitialAdManager = InterstitialAdManager(this)
         enableEdgeToEdge()
         val fileName = intent.getStringExtra("file_name") ?: "chapter_01.html"
         val chapterTitle = intent.getStringExtra("chapter_title") ?: "Chapter"
@@ -49,7 +56,14 @@ class WebViewActivity : ComponentActivity() {
                 ChapterWebViewScreen(
                     fileName = fileName,
                     title = chapterTitle,
-                    onBack = { finish() }
+                    isPremium = isPremium,
+                    onBack = {
+                        if (isPremium) {
+                            finish()
+                        } else {
+                            interstitialAdManager.onChapterClosed(this) { finish() }
+                        }
+                    }
                 )
             }
         }
@@ -59,8 +73,10 @@ class WebViewActivity : ComponentActivity() {
 @SuppressLint("SetJavaScriptEnabled")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChapterWebViewScreen(fileName: String, title: String, onBack: () -> Unit) {
+fun ChapterWebViewScreen(fileName: String, title: String, isPremium: Boolean, onBack: () -> Unit) {
     var isLoading by remember { mutableStateOf(true) }
+
+    BackHandler(onBack = onBack)
 
     Scaffold(
         topBar = {
@@ -82,51 +98,61 @@ fun ChapterWebViewScreen(fileName: String, title: String, onBack: () -> Unit) {
             )
         }
     ) { paddingValues ->
-        AndroidView(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
-            factory = { context ->
-                WebView(context).apply {
-                    webViewClient = object : WebViewClient() {
-                        override fun onPageFinished(view: WebView?, url: String?) {
-                            isLoading = false
+                .padding(paddingValues)
+        ) {
+            Box(modifier = Modifier.weight(1f)) {
+                AndroidView(
+                    modifier = Modifier.fillMaxSize(),
+                    factory = { context ->
+                        WebView(context).apply {
+                            webViewClient = object : WebViewClient() {
+                                override fun onPageFinished(view: WebView?, url: String?) {
+                                    isLoading = false
+                                }
+                            }
+                            webChromeClient = WebChromeClient()
+                            setLayerType(View.LAYER_TYPE_HARDWARE, null)
+                            with(settings) {
+                                javaScriptEnabled = true
+                                domStorageEnabled = true
+                                allowFileAccess = true
+                                @Suppress("DEPRECATION")
+                                allowFileAccessFromFileURLs = true
+                                @Suppress("DEPRECATION")
+                                allowUniversalAccessFromFileURLs = true
+                                builtInZoomControls = true
+                                displayZoomControls = false
+                                loadWithOverviewMode = true
+                                useWideViewPort = true
+                                mediaPlaybackRequiresUserGesture = false
+                            }
+                            loadUrl("file:///android_asset/$fileName")
                         }
                     }
-                    webChromeClient = WebChromeClient()
-                    setLayerType(View.LAYER_TYPE_HARDWARE, null)
-                    with(settings) {
-                        javaScriptEnabled = true
-                        domStorageEnabled = true
-                        allowFileAccess = true
-                        @Suppress("DEPRECATION")
-                        allowFileAccessFromFileURLs = true
-                        @Suppress("DEPRECATION")
-                        allowUniversalAccessFromFileURLs = true
-                        builtInZoomControls = true
-                        displayZoomControls = false
-                        loadWithOverviewMode = true
-                        useWideViewPort = true
-                        mediaPlaybackRequiresUserGesture = false
-                    }
-                    loadUrl("file:///android_asset/$fileName")
+                )
+
+                if (isLoading) {
+                    AlertDialog(
+                        onDismissRequest = { },
+                        confirmButton = { },
+                        title = { Text("Loading...") },
+                        text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Text("Loading Please Wait...")
+                            }
+                        }
+                    )
                 }
             }
-        )
 
-        if (isLoading) {
-            AlertDialog(
-                onDismissRequest = { },
-                confirmButton = { },
-                title = { Text("Loading...") },
-                text = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        CircularProgressIndicator(modifier = Modifier.size(32.dp))
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Text("Loading Please Wait...")
-                    }
-                }
-            )
+            if (!isPremium) {
+                BannerAdView()
+            }
         }
     }
 }
