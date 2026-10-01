@@ -162,11 +162,13 @@ fun ChapterListScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = {
-                    lockedChapter = null
-                    onWatchAdToUnlock(chapter.number)
-                }) {
-                    Text("Watch Ad to Unlock")
+                if (BuildConfig.SHOW_ADS) {
+                    TextButton(onClick = {
+                        lockedChapter = null
+                        onWatchAdToUnlock(chapter.number)
+                    }) {
+                        Text("Watch Ad to Unlock")
+                    }
                 }
             }
         )
@@ -183,7 +185,7 @@ fun ChapterListScreen(
             )
         },
         bottomBar = {
-            if (!isPremium) {
+            if (!isPremium && BuildConfig.SHOW_ADS) {
                 BannerAdView()
             }
         }

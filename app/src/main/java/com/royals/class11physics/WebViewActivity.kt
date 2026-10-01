@@ -58,7 +58,7 @@ class WebViewActivity : ComponentActivity() {
                     title = chapterTitle,
                     isPremium = isPremium,
                     onBack = {
-                        if (isPremium) {
+                        if (isPremium || !BuildConfig.SHOW_ADS) {
                             finish()
                         } else {
                             interstitialAdManager.onChapterClosed(this) { finish() }
@@ -150,7 +150,7 @@ fun ChapterWebViewScreen(fileName: String, title: String, isPremium: Boolean, on
                 }
             }
 
-            if (!isPremium) {
+            if (!isPremium && BuildConfig.SHOW_ADS) {
                 BannerAdView()
             }
         }
