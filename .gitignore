@@ -16,3 +16,9 @@ local.properties
 *.apk
 *.aab
 .kotlin/
+*.jks
+*.keystore
+*play-service-account*.json
+play-store-key.json
+keystore_base64.txt
+app/release.keystore

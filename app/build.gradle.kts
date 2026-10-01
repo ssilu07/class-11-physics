@@ -21,6 +21,19 @@ android {
         buildConfigField("Boolean", "SHOW_ADS", "false")
     }
 
+    signingConfigs {
+        create("release") {
+            val keystorePath = System.getenv("KEYSTORE_FILE") ?: (project.findProperty("KEYSTORE_FILE") as? String ?: "app/release.keystore")
+            val keystoreFile = rootProject.file(keystorePath).takeIf { it.exists() } ?: file(keystorePath)
+            if (keystoreFile.exists()) {
+                storeFile = keystoreFile
+                storePassword = System.getenv("KEYSTORE_PASSWORD") ?: (project.findProperty("KEYSTORE_PASSWORD") as? String ?: "")
+                keyAlias = System.getenv("KEY_ALIAS") ?: (project.findProperty("KEY_ALIAS") as? String ?: "")
+                keyPassword = System.getenv("KEY_PASSWORD") ?: (project.findProperty("KEY_PASSWORD") as? String ?: "")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             // Google's official test ad unit IDs - safe to use during development, never show real ads.
@@ -35,6 +48,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            val releaseSigning = signingConfigs.getByName("release")
+            if (releaseSigning.storeFile?.exists() == true) {
+                signingConfig = releaseSigning
+            }
             manifestPlaceholders["admobAppId"] = "ca-app-pub-1811294933992844~1432331276"
             buildConfigField("String", "BANNER_AD_UNIT_ID", "\"ca-app-pub-1811294933992844/1091665906\"")
             buildConfigField("String", "INTERSTITIAL_AD_UNIT_ID", "\"ca-app-pub-1811294933992844/5960849203\"")
