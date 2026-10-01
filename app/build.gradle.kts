@@ -14,8 +14,8 @@ android {
         applicationId = "com.royals.class11physics"
         minSdk = 24
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.5"
+        versionCode = 6
+        versionName = "1.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("Boolean", "SHOW_ADS", "false")
