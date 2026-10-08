@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.play.publisher)
 }
 
 android {
@@ -14,8 +15,8 @@ android {
         applicationId = "com.royals.class11physics"
         minSdk = 24
         targetSdk = 36
-        versionCode = 6
-        versionName = "1.6"
+        versionCode = 7
+        versionName = "1.7"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("Boolean", "SHOW_ADS", "false")
@@ -43,7 +44,8 @@ android {
             buildConfigField("String", "REWARDED_AD_UNIT_ID", "\"ca-app-pub-3940256099942544/5224354917\"")
         }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -71,6 +73,26 @@ android {
     }
 }
 
+play {
+    val possibleKeyFiles = listOf(
+        rootProject.file("play-service-account.json"),
+        rootProject.file("play-store-key.json"),
+        file("play-service-account.json"),
+        file("play-store-key.json")
+    )
+    val credFile = possibleKeyFiles.firstOrNull { it.exists() }
+        ?: rootProject.file(".").listFiles()?.firstOrNull { 
+            it.name.endsWith(".json") && (it.name.contains("play", ignoreCase = true) || it.name.contains("service-account", ignoreCase = true)) 
+        }
+
+    if (credFile != null && credFile.exists()) {
+        serviceAccountCredentials.set(credFile)
+    }
+    track.set("internal")
+    defaultToAppBundles.set(true)
+}
+
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -83,6 +105,7 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.billing)
     implementation(libs.play.services.ads)
+    implementation(libs.play.review)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

@@ -88,12 +88,15 @@ private val cardNumberColors = listOf(
 class MainActivity : ComponentActivity() {
     private lateinit var billingManager: BillingManager
     private lateinit var rewardedAdManager: RewardedAdManager
+    private lateinit var inAppReviewManager: InAppReviewManager
+    private var hasOpenedChapter = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         billingManager = BillingManager(this)
         billingManager.startConnection()
         rewardedAdManager = RewardedAdManager(this)
+        inAppReviewManager = InAppReviewManager(this)
         enableEdgeToEdge()
         setContent {
             val isPremium by billingManager.isPremium.collectAsState()
@@ -125,9 +128,20 @@ class MainActivity : ComponentActivity() {
                                 ).show()
                             }
                         )
+                    },
+                    onChapterOpened = {
+                        hasOpenedChapter = true
                     }
                 )
             }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (hasOpenedChapter) {
+            hasOpenedChapter = false
+            inAppReviewManager.onChapterRead(this)
         }
     }
 
@@ -143,7 +157,8 @@ fun ChapterListScreen(
     isPremium: Boolean,
     unlockedChapters: Set<Int>,
     onPurchaseClick: () -> Unit,
-    onWatchAdToUnlock: (Int) -> Unit
+    onWatchAdToUnlock: (Int) -> Unit,
+    onChapterOpened: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var lockedChapter by remember { mutableStateOf<Chapter?>(null) }
@@ -203,6 +218,7 @@ fun ChapterListScreen(
                     if (isLocked) {
                         lockedChapter = chapter
                     } else {
+                        onChapterOpened()
                         val intent = Intent(context, WebViewActivity::class.java).apply {
                             putExtra("file_name", chapter.fileName)
                             putExtra("chapter_title", chapter.title)

@@ -19,3 +19,20 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Google Play In-App Review
+-keep class com.google.android.play.core.review.** { *; }
+-keep interface com.google.android.play.core.review.** { *; }
+
+# Google Play Billing
+-keep class com.android.billingclient.api.** { *; }
+
+# Google Mobile Ads (AdMob)
+-keep class com.google.android.gms.ads.** { *; }
+-keep interface com.google.android.gms.ads.** { *; }
+
+# Preserve Data Classes
+-keepclassmembers class * {
+    @androidx.annotation.Keep <fields>;
+    @androidx.annotation.Keep <methods>;
+}
