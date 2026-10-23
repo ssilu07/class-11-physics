@@ -1,4 +1,5 @@
-• Comprehensive Class 11 Physics NCERT notes covering all 15 chapters
-• Chapter-wise formulas, definitions, and key derivations
-• Enhanced offline reading and faster loading performance
-• Minor bug fixes and UI improvements
+• Added Formula Hub & Cheat Sheet with chapter-wise formulas, SI units & dimensions
+• Added 15 Step-by-Step NCERT Board Exam Derivations with pro-tips
+• New Chapter search, unit-wise filters & star bookmarking for quick exam revision
+• In-reader font zoom (A-/A+) & continuous chapter navigation
+• Enhanced offline reading and UI performance optimizations

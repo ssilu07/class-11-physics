@@ -22,3 +22,4 @@ local.properties
 play-store-key.json
 keystore_base64.txt
 app/release.keystore
+base/
