@@ -57,40 +57,25 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.royals.class11physics.ui.theme.Class11PhysicsTheme
 
 class WebViewActivity : ComponentActivity() {
-    private lateinit var interstitialAdManager: InterstitialAdManager
     private lateinit var rewardedAdManager: RewardedAdManager
-    private lateinit var billingManager: BillingManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        billingManager = BillingManager(this)
-        billingManager.startConnection()
         rewardedAdManager = RewardedAdManager(this)
-        interstitialAdManager = InterstitialAdManager(this)
 
         enableEdgeToEdge()
 
         val initialChapterNumber = intent.getIntExtra("chapter_number", 1)
 
         setContent {
-            val isPremium by billingManager.isPremium.collectAsState()
-
             Class11PhysicsTheme {
                 ChapterWebViewScreen(
                     initialChapterNumber = initialChapterNumber,
-                    isPremium = isPremium,
                     onBack = {
-                        if (isPremium || !BuildConfig.SHOW_ADS) {
+                        if (!BuildConfig.SHOW_ADS) {
                             finish()
                         } else {
-                            interstitialAdManager.onChapterClosed(this) { finish() }
-                        }
-                    },
-                    onPurchaseClick = {
-                        if (billingManager.isReadyToPurchase()) {
-                            billingManager.launchPurchaseFlow(this)
-                        } else {
-                            Toast.makeText(this, "Connecting to Play Store...", Toast.LENGTH_SHORT).show()
+                            InterstitialAdManager.onChapterClosed(this) { finish() }
                         }
                     },
                     onWatchAdToUnlock = { chapterNumber, onRewarded ->
@@ -99,12 +84,16 @@ class WebViewActivity : ComponentActivity() {
                             onRewardEarned = {
                                 UserDataManager.unlockChapter(this, chapterNumber)
                                 onRewarded()
+                                Toast.makeText(this, "Chapter unlocked!", Toast.LENGTH_SHORT).show()
                             },
                             onAdUnavailable = {
+                                // Zero-friction fallback: unlock if ad takes too long or fails over network
+                                UserDataManager.unlockChapter(this, chapterNumber)
+                                onRewarded()
                                 Toast.makeText(
                                     this,
-                                    "Ad not ready yet, please try again in a moment.",
-                                    Toast.LENGTH_SHORT
+                                    "Slow network detected. Chapter unlocked for you!",
+                                    Toast.LENGTH_LONG
                                 ).show()
                             }
                         )
@@ -113,11 +102,6 @@ class WebViewActivity : ComponentActivity() {
             }
         }
     }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        billingManager.destroy()
-    }
 }
 
 @SuppressLint("SetJavaScriptEnabled")
@@ -125,9 +109,7 @@ class WebViewActivity : ComponentActivity() {
 @Composable
 fun ChapterWebViewScreen(
     initialChapterNumber: Int,
-    isPremium: Boolean,
     onBack: () -> Unit,
-    onPurchaseClick: () -> Unit,
     onWatchAdToUnlock: (Int, () -> Unit) -> Unit
 ) {
     val context = LocalContext.current
@@ -150,32 +132,26 @@ fun ChapterWebViewScreen(
             title = { Text("Unlock Chapter ${target.number}") },
             text = {
                 Text(
-                    "\"${target.title}\" is a premium chapter. " +
-                    "Purchase once to unlock all chapters forever, or watch a quick ad to read this chapter now."
+                    "\"${target.title}\" is locked. Watch a short video ad to unlock and read this chapter now!"
                 )
             },
             confirmButton = {
                 Button(onClick = {
+                    val chapterNum = target.number
                     lockedTargetChapter = null
-                    onPurchaseClick()
+                    onWatchAdToUnlock(chapterNum) {
+                        currentChapterNumber = chapterNum
+                        isLoading = true
+                        webViewRef?.loadUrl("file:///android_asset/${target.fileName}")
+                        Toast.makeText(context, "Chapter $chapterNum unlocked!", Toast.LENGTH_SHORT).show()
+                    }
                 }) {
-                    Text("Buy All - Unlock Forever")
+                    Text("Watch Ad to Unlock")
                 }
             },
             dismissButton = {
-                if (BuildConfig.SHOW_ADS) {
-                    TextButton(onClick = {
-                        val chapterNum = target.number
-                        lockedTargetChapter = null
-                        onWatchAdToUnlock(chapterNum) {
-                            currentChapterNumber = chapterNum
-                            isLoading = true
-                            webViewRef?.loadUrl("file:///android_asset/${target.fileName}")
-                            Toast.makeText(context, "Chapter $chapterNum unlocked!", Toast.LENGTH_SHORT).show()
-                        }
-                    }) {
-                        Text("Watch Ad to Unlock")
-                    }
+                TextButton(onClick = { lockedTargetChapter = null }) {
+                    Text("Cancel")
                 }
             }
         )
@@ -371,7 +347,7 @@ fun ChapterWebViewScreen(
                             if (currentChapterNumber < chapters.size) {
                                 val nextNum = currentChapterNumber + 1
                                 val nextTarget = chapters[nextNum - 1]
-                                val isUnlocked = UserDataManager.isChapterUnlocked(context, nextNum, isPremium)
+                                val isUnlocked = UserDataManager.isChapterUnlocked(context, nextNum)
                                 if (isUnlocked) {
                                     currentChapterNumber = nextNum
                                     isLoading = true
@@ -390,7 +366,7 @@ fun ChapterWebViewScreen(
             }
 
             // Banner Ad at the bottom
-            if (!isPremium && BuildConfig.SHOW_ADS) {
+            if (BuildConfig.SHOW_ADS) {
                 BannerAdView()
             }
         }

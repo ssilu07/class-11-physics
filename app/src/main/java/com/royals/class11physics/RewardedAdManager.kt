@@ -13,31 +13,39 @@ import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
 class RewardedAdManager(private val context: Context) {
 
     private var rewardedAd: RewardedAd? = null
+    private var isLoading = false
 
     init {
         loadAd()
     }
 
-    private fun loadAd() {
+    fun loadAd() {
+        if (isLoading || rewardedAd != null) return
+        isLoading = true
         RewardedAd.load(
-            context,
+            context.applicationContext,
             BuildConfig.REWARDED_AD_UNIT_ID,
             AdRequest.Builder().build(),
             object : RewardedAdLoadCallback() {
                 override fun onAdLoaded(ad: RewardedAd) {
                     rewardedAd = ad
+                    isLoading = false
                 }
 
                 override fun onAdFailedToLoad(error: LoadAdError) {
                     rewardedAd = null
+                    isLoading = false
                 }
             }
         )
     }
 
+    fun isAdReady(): Boolean = rewardedAd != null
+
     fun show(activity: Activity, onRewardEarned: () -> Unit, onAdUnavailable: () -> Unit) {
         val ad = rewardedAd
         if (ad == null) {
+            loadAd()
             onAdUnavailable()
             return
         }

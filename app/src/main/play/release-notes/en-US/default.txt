@@ -1,5 +1,5 @@
-• Added Formula Hub & Cheat Sheet with chapter-wise formulas, SI units & dimensions
-• Added 15 Step-by-Step NCERT Board Exam Derivations with pro-tips
-• New Chapter search, unit-wise filters & star bookmarking for quick exam revision
-• In-reader font zoom (A-/A+) & continuous chapter navigation
-• Enhanced offline reading and UI performance optimizations
+• First 5 Chapters now 100% Free for Term-1 & School Exam Preparation
+• Added Daily 6:30 PM Quick Physics Revision Reminders to boost daily study habits
+• Smoother & faster offline reading with zero-delay ad preloading
+• Enhanced Formula Hub and NCERT Exam Derivations
+• Stability and performance optimizations across all Android devices

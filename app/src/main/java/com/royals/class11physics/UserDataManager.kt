@@ -84,8 +84,8 @@ object UserDataManager {
     }
 
 
-    fun isChapterUnlocked(context: Context, chapterNumber: Int, isPremium: Boolean): Boolean {
-        if (chapterNumber <= 3) return true
+    fun isChapterUnlocked(context: Context, chapterNumber: Int, isPremium: Boolean = false): Boolean {
+        if (chapterNumber <= 5) return true // Chapters 1 to 5 are completely free (Core Mechanics)
         if (isPremium) return true
         if (sessionUnlockedChapters.contains(chapterNumber)) return true
         val persisted = getPrefs(context).getStringSet(KEY_UNLOCKED_CHAPTERS, emptySet()) ?: emptySet()

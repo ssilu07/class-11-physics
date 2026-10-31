@@ -94,20 +94,18 @@ private val cardNumberColors = listOf(
 )
 
 class MainActivity : ComponentActivity() {
-    private lateinit var billingManager: BillingManager
     private lateinit var rewardedAdManager: RewardedAdManager
     private lateinit var inAppReviewManager: InAppReviewManager
     private var hasOpenedChapter = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        billingManager = BillingManager(this)
-        billingManager.startConnection()
         rewardedAdManager = RewardedAdManager(this)
         inAppReviewManager = InAppReviewManager(this)
+        DailyReminderManager.scheduleDailyReminder(this)
+        requestNotificationPermissionIfNeeded()
         enableEdgeToEdge()
         setContent {
-            val isPremium by billingManager.isPremium.collectAsState()
             var unlockedChapters by remember {
                 mutableStateOf(UserDataManager.getUnlockedChapters(this@MainActivity))
             }
@@ -123,7 +121,6 @@ class MainActivity : ComponentActivity() {
 
             Class11PhysicsTheme {
                 MainAppScreen(
-                    isPremium = isPremium,
                     unlockedChapters = unlockedChapters,
                     bookmarkedChapters = bookmarkedChapters,
                     bookmarkedFormulas = bookmarkedFormulas,
@@ -140,17 +137,6 @@ class MainActivity : ComponentActivity() {
                         UserDataManager.toggleDerivationBookmark(this@MainActivity, derivationId)
                         bookmarkedDerivations = UserDataManager.getBookmarkedDerivations(this@MainActivity)
                     },
-                    onPurchaseClick = {
-                        if (billingManager.isReadyToPurchase()) {
-                            billingManager.launchPurchaseFlow(this)
-                        } else {
-                            Toast.makeText(
-                                this,
-                                "Connecting to Google Play Store...",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    },
                     onWatchAdToUnlock = { chapterNumber ->
                         rewardedAdManager.show(
                             activity = this,
@@ -164,10 +150,13 @@ class MainActivity : ComponentActivity() {
                                 ).show()
                             },
                             onAdUnavailable = {
+                                // Zero-friction fallback: unlock if ad fails to load or slow network
+                                UserDataManager.unlockChapter(this@MainActivity, chapterNumber)
+                                unlockedChapters = UserDataManager.getUnlockedChapters(this@MainActivity)
                                 Toast.makeText(
                                     this,
-                                    "Ad not ready yet, please try again in a moment.",
-                                    Toast.LENGTH_SHORT
+                                    "Slow network detected. Chapter $chapterNumber unlocked for you!",
+                                    Toast.LENGTH_LONG
                                 ).show()
                             }
                         )
@@ -188,16 +177,25 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun requestNotificationPermissionIfNeeded() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            val permission = android.Manifest.permission.POST_NOTIFICATIONS
+            if (androidx.core.content.ContextCompat.checkSelfPermission(this, permission)
+                != android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                androidx.core.app.ActivityCompat.requestPermissions(this, arrayOf(permission), 101)
+            }
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
-        billingManager.destroy()
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainAppScreen(
-    isPremium: Boolean,
     unlockedChapters: Set<Int>,
     bookmarkedChapters: Set<Int>,
     bookmarkedFormulas: Set<String>,
@@ -205,7 +203,6 @@ fun MainAppScreen(
     onToggleChapterBookmark: (Int) -> Unit,
     onToggleFormulaBookmark: (String) -> Unit,
     onToggleDerivationBookmark: (String) -> Unit,
-    onPurchaseClick: () -> Unit,
     onWatchAdToUnlock: (Int) -> Unit,
     onChapterOpened: () -> Unit = {}
 ) {
@@ -218,7 +215,7 @@ fun MainAppScreen(
     val handleOpenChapter: (Int) -> Unit = { chapterNumber ->
         val chapter = chapters.find { it.number == chapterNumber }
         if (chapter != null) {
-            val isUnlocked = chapter.number <= 3 || isPremium || chapter.number in unlockedChapters
+            val isUnlocked = chapter.number <= 5 || chapter.number in unlockedChapters
             if (isUnlocked) {
                 onChapterOpened()
                 val intent = Intent(context, WebViewActivity::class.java).apply {
@@ -244,27 +241,21 @@ fun MainAppScreen(
             title = { Text("Unlock Chapter ${chapter.number}") },
             text = {
                 Text(
-                    "\"${chapter.title}\" is a premium chapter. " +
-                    "Purchase once to unlock all 15 chapters forever with an ad-free experience, " +
-                    "or watch a quick video ad to unlock this chapter for your study session."
+                    "\"${chapter.title}\" is locked. Watch a short video ad to unlock this chapter for your study session!"
                 )
             },
             confirmButton = {
                 Button(onClick = {
+                    val chNum = chapter.number
                     lockedChapter = null
-                    onPurchaseClick()
+                    onWatchAdToUnlock(chNum)
                 }) {
-                    Text("Buy All - Unlock Forever")
+                    Text("Watch Ad to Unlock")
                 }
             },
             dismissButton = {
-                if (BuildConfig.SHOW_ADS) {
-                    TextButton(onClick = {
-                        lockedChapter = null
-                        onWatchAdToUnlock(chapter.number)
-                    }) {
-                        Text("Watch Ad to Unlock")
-                    }
+                TextButton(onClick = { lockedChapter = null }) {
+                    Text("Cancel")
                 }
             }
         )
@@ -295,25 +286,6 @@ fun MainAppScreen(
                         )
                     }
                 },
-                actions = {
-                    if (!isPremium) {
-                        Surface(
-                            shape = RoundedCornerShape(16.dp),
-                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f),
-                            modifier = Modifier
-                                .padding(end = 12.dp)
-                                .clickable { onPurchaseClick() }
-                        ) {
-                            Text(
-                                text = "⭐ PRO",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                            )
-                        }
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary
@@ -322,7 +294,7 @@ fun MainAppScreen(
         },
         bottomBar = {
             Column {
-                if (!isPremium && BuildConfig.SHOW_ADS) {
+                if (BuildConfig.SHOW_ADS) {
                     BannerAdView()
                 }
                 NavigationBar(
@@ -412,7 +384,6 @@ fun MainAppScreen(
             when (selectedNavTab) {
                 0 -> {
                     ChapterListContent(
-                        isPremium = isPremium,
                         unlockedChapters = unlockedChapters,
                         bookmarkedChapters = bookmarkedChapters,
                         onToggleBookmark = onToggleChapterBookmark,
@@ -450,7 +421,6 @@ fun MainAppScreen(
 
 @Composable
 fun ChapterListContent(
-    isPremium: Boolean,
     unlockedChapters: Set<Int>,
     bookmarkedChapters: Set<Int>,
     onToggleBookmark: (Int) -> Unit,
@@ -462,18 +432,18 @@ fun ChapterListContent(
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf(ChapterFilter.ALL) }
 
-    val filteredChapters = remember(searchQuery, selectedFilter, bookmarkedChapters, unlockedChapters, isPremium) {
+    val filteredChapters = remember(searchQuery, selectedFilter, bookmarkedChapters, unlockedChapters) {
         chapters.filter { chapter ->
             val matchesSearch = searchQuery.isBlank() ||
                 chapter.title.contains(searchQuery, ignoreCase = true) ||
                 chapter.unit.contains(searchQuery, ignoreCase = true) ||
                 chapter.number.toString() == searchQuery.trim()
 
-            val isUnlocked = chapter.number <= 3 || isPremium || chapter.number in unlockedChapters
+            val isUnlocked = chapter.number <= 5 || chapter.number in unlockedChapters
 
             val matchesFilter = when (selectedFilter) {
                 ChapterFilter.ALL -> true
-                ChapterFilter.FREE -> chapter.number <= 3
+                ChapterFilter.FREE -> chapter.number <= 5
                 ChapterFilter.BOOKMARKED -> chapter.number in bookmarkedChapters
                 ChapterFilter.LOCKED -> !isUnlocked
             }
@@ -538,15 +508,15 @@ fun ChapterListContent(
                         val isSelected = selectedFilter == filter
                         val count = when (filter) {
                             ChapterFilter.ALL -> chapters.size
-                            ChapterFilter.FREE -> 3
+                            ChapterFilter.FREE -> 5
                             ChapterFilter.BOOKMARKED -> bookmarkedChapters.size
                             ChapterFilter.LOCKED -> {
-                                if (isPremium) 0 else (chapters.size - 3 - unlockedChapters.count { it > 3 }).coerceAtLeast(0)
+                                (chapters.size - 5 - unlockedChapters.count { it > 5 }).coerceAtLeast(0)
                             }
                         }
                         val labelText = when (filter) {
                             ChapterFilter.ALL -> "All (15)"
-                            ChapterFilter.FREE -> "Free (3)"
+                            ChapterFilter.FREE -> "Free (5)"
                             ChapterFilter.BOOKMARKED -> "Saved ($count)"
                             ChapterFilter.LOCKED -> "Locked ($count)"
                         }
@@ -635,9 +605,9 @@ fun ChapterListContent(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(filteredChapters, key = { it.number }) { chapter ->
-                    val isUnlocked = chapter.number <= 3 || isPremium || chapter.number in unlockedChapters
+                    val isUnlocked = chapter.number <= 5 || chapter.number in unlockedChapters
                     val isLocked = !isUnlocked
-                    val isAdUnlocked = !isPremium && chapter.number > 3 && chapter.number in unlockedChapters
+                    val isAdUnlocked = chapter.number > 5 && chapter.number in unlockedChapters
                     val isBookmarked = chapter.number in bookmarkedChapters
 
                     ChapterCard(
@@ -781,7 +751,7 @@ fun ChapterCard(
                             fontWeight = FontWeight.Bold
                         )
                     }
-                } else if (chapter.number <= 3) {
+                } else if (chapter.number <= 5) {
                     Surface(
                         shape = CircleShape,
                         color = Color(0xFF1976D2).copy(alpha = 0.15f),
